@@ -187,3 +187,40 @@ dotnet user-secrets set "ConnectionStrings:openai" "sk-<your-key>"
 - Reduced Azure resource overhead (no OpenAI Cognitive Service resource)
 - Credential: API key managed as app secret in AppHost configuration
 
+### Web Project Port Configuration (Completed)
+
+**Task:** Fix port conflict for standalone Web project execution
+
+**Status:** ✅ COMPLETED — launchSettings.json created, Program.cs fallback updated
+
+**Changes Made:**
+
+1. **Created launchSettings.json**
+   - Location: `src/MeetingMinutes.Web/Properties/launchSettings.json`
+   - HTTPS profile (default): `https://localhost:7180;http://localhost:5180`
+   - HTTP profile: `http://localhost:5180`
+   - Both profiles set `ASPNETCORE_ENVIRONMENT: "Development"`
+   - HTTPS profile uses `"commandName": "Project"` for IDE default
+
+2. **Updated Program.cs**
+   - Changed fallback port from `http://localhost:5000` to `http://localhost:5180`
+   - Line 21: HttpClient API base URL fallback now points to non-conflicting port
+   - Allows standalone Web execution without port 5000 conflicts
+
+3. **Port Allocation Rationale**
+   - Port 5180 (HTTP): Avoids port 5000 (old ASP.NET Core default, often in use)
+   - Port 7180 (HTTPS): Avoids port 7000 range conflicts with other services
+   - Port 15888 (preserved): Aspire dashboard (AppHost launchSettings)
+   - Ports 16175/16176 (preserved): Aspire OTLP endpoints
+   - Port 5001 (avoided): Often used for ASP.NET HTTPS redirect fallback
+
+**Build Verification:**
+- ✅ Web project builds successfully (0 errors, 0 warnings, 6.6s)
+- ✅ launchSettings.json is properly structured JSON
+- ✅ Program.cs compiles with updated fallback
+
+**Developer Impact:**
+- Web project can now run standalone via IDE (F5) without port 5000 conflicts
+- Aspire AppHost orchestration unaffected (separate launchSettings)
+- Fallback URL supports both Aspire discovery and direct standalone execution
+

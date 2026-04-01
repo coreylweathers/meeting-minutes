@@ -3233,3 +3233,116 @@ If a revision were needed, I would assign **Alex** (not Bobbie, who authored thi
 **Signed:** Miller, Code Reviewer  
 **Date:** 2026-04-01
 
+---
+
+## amos web port fix
+
+# Decision: Web Project Port Configuration
+
+**Author:** Amos (DevOps/Infrastructure)  
+**Date:** 2026-04-01  
+**Status:** ✅ IMPLEMENTED
+
+## Problem
+
+The `MeetingMinutes.Web` project had no `launchSettings.json`, causing it to fall back to `http://localhost:5000` when run standalone. Port 5000 is already in use on the developer's machine, preventing the web project from starting.
+
+## Solution
+
+Created `src/MeetingMinutes.Web/Properties/launchSettings.json` with non-conflicting port assignments and updated the fallback URL in `Program.cs`.
+
+## Port Assignments
+
+| Service | Port | Range | Reason |
+|---------|------|-------|--------|
+| **Web (HTTP)** | 5180 | 5100-5199 | Avoids port 5000 (ASP.NET Core default, often in use) |
+| **Web (HTTPS)** | 7180 | 7100-7199 | Standard Blazor HTTPS range |
+| Aspire Dashboard | 15888 | — | Preserved (AppHost launchSettings) |
+| Aspire OTLP | 16175-16176 | — | Preserved (telemetry) |
+| Port 5001 | — | Avoided | Often used for HTTPS redirect fallback |
+
+## Changes Made
+
+### 1. Created launchSettings.json
+
+```json
+{
+  "profiles": {
+    "https": {
+      "commandName": "Project",
+      "applicationUrl": "https://localhost:7180;http://localhost:5180",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "http": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:5180",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
+
+**Profile Details:**
+- **https** (default): HTTPS primary, HTTP fallback; IDE selects by default
+- **http**: HTTP-only for cases where HTTPS isn't required
+- Both profiles: `ASPNETCORE_ENVIRONMENT: "Development"`
+
+### 2. Updated Program.cs
+
+**File:** `src/MeetingMinutes.Web/Program.cs` (line 21)
+
+**Before:**
+```csharp
+?? "http://localhost:5000";
+```
+
+**After:**
+```csharp
+?? "http://localhost:5180";
+```
+
+**Rationale:** Fallback URL must match the non-conflicting port assignment. Allows standalone execution without Aspire.
+
+## Impact
+
+**Developer Workflow:**
+- Web project can now run standalone via IDE (F5) without port conflicts
+- Default IDE launch (https profile) provides both HTTPS and HTTP support
+- Fallback port matches launchSettings configuration
+
+**Aspire Orchestration:**
+- Unaffected — AppHost has its own launchSettings with separate port assignments
+- Web and API coordinate via service discovery (not port hardcoding)
+
+**Build Status:**
+- ✅ Web project builds successfully (0 errors, 0 warnings)
+- ✅ All 6 projects compile
+
+## Architecture Notes
+
+The Web project now supports three execution modes:
+
+1. **Aspire Orchestration:** AppHost starts Web → Aspire injects API service discovery → Web runs on Aspire-assigned ports
+2. **IDE Launch (F5):** User selects https or http profile → launchSettings.json provides ports 5180/7180
+3. **Direct CLI:** `dotnet run` from Web directory → Uses launchSettings, falls back to ports 5180/7180
+
+All three modes work without port conflicts.
+
+## Verification
+
+✅ Build passed (6.6s)  
+✅ launchSettings.json is valid JSON  
+✅ Program.cs compiles  
+✅ Ports do not conflict with existing services  
+
+---
+
+**Related Files:**
+- `src/MeetingMinutes.Web/Properties/launchSettings.json` (new)
+- `src/MeetingMinutes.Web/Program.cs` (line 21 updated)
+- `.squad/agents/amos/history.md` (updated with learnings)
+

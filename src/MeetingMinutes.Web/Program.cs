@@ -18,7 +18,7 @@ builder.Services.AddHttpClient("api", client =>
     var apiBaseUrl = builder.Configuration["services:api:http:0"] 
         ?? builder.Configuration["services:api:https:0"]
         ?? builder.Configuration["ApiBaseUrl"] 
-        ?? "http://localhost:5000";
+        ?? "http://localhost:5180";
     client.BaseAddress = new Uri(apiBaseUrl);
 });
 
