@@ -1,0 +1,80 @@
+================================================================================
+ BLAZOR INTERACTIVE SERVER MIGRATION — HOLDEN'S ARCHITECTURAL GUIDANCE
+================================================================================
+
+📁 Documentation Created:
+   1. .squad/decisions/inbox/holden-server-migration-arch.md (25KB)
+      → Comprehensive architectural decision document
+      → Covers all code changes, rationale, risks, and rollback plan
+   
+   2. .squad/holden-migration-guide.md (4KB)
+      → Quick reference for Alex and Amos
+      → Key package changes, code patterns, common issues
+   
+   3. .squad/holden-architecture-comparison.md (10KB)
+      → Visual comparison of WASM vs Interactive Server
+      → Request flow diagrams, pros/cons analysis
+   
+   4. .squad/holden-migration-checklist.md (9KB)
+      → Step-by-step implementation checklist
+      → Pre-flight, phases, testing, success criteria
+
+📚 Updated:
+   - .squad/agents/holden/history.md
+     → Added "Interactive Server Migration" learning entry
+     → Updated project context (WASM → Interactive Server)
+
+================================================================================
+ KEY FINDINGS
+================================================================================
+
+✅ AppHost Already Configured!
+   - Line 15 in AppHost.csproj: Web project reference exists
+   - Line 29-32 in AppHost/Program.cs: Web project fully wired with API reference
+   - NO CHANGES NEEDED to AppHost — forward-thinking architecture!
+
+🎯 Core Migration Tasks:
+   1. Web Project (Alex):
+      - Change SDK from BlazorWebAssembly → Web
+      - Replace Program.cs (WASM → ASP.NET Core)
+      - Move auth from API → Web
+      - Configure HttpClient with Aspire service discovery
+      - Update App.razor to root HTML document
+      - Create Routes.razor for router logic
+   
+   2. API Project (Amos):
+      - Remove WASM hosting packages and code
+      - Remove all authentication code (moved to Web)
+      - Remove auth endpoints (moved to Web)
+      - Remove .RequireAuthorization() from jobs endpoints
+      - Keep CORS for now (optional cleanup later)
+
+⚠️ Critical Security Note:
+   - API currently has .RequireAuthorization() but will lose auth middleware
+   - MUST REMOVE .RequireAuthorization() or add JWT validation
+   - Recommended: Remove (Web → API is internal server-to-server call)
+
+🔐 Auth Flow Change:
+   - Before: API manages OAuth, Web (WASM) calls /api/auth/user
+   - After: Web manages OAuth, endpoints at /auth/* (no /api prefix)
+   - OAuth redirect URIs must be updated in Azure/Google consoles
+
+📊 Performance Improvements:
+   - Eliminate ~2MB WASM download
+   - Server-side rendering (faster initial load)
+   - SignalR for interactivity (persistent WebSocket)
+   - No CORS preflight delays
+
+================================================================================
+ NEXT STEPS
+================================================================================
+
+1. Alex implements Web project transformation
+2. Amos cleans up API project
+3. Both test end-to-end (build, run, auth, upload, jobs)
+4. Miller reviews before merge
+
+Estimated Time: 2-4 hours
+Risk Level: Medium (auth flow changes)
+
+================================================================================

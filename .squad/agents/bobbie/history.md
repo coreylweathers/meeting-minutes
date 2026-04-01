@@ -9,4 +9,16 @@
 **Solution projects:** MeetingMinutes.AppHost, MeetingMinutes.ServiceDefaults, MeetingMinutes.Api, MeetingMinutes.Web (Blazor WASM), MeetingMinutes.Shared  
 **Review gate:** ALL code must be reviewed and approved by Miller before any task is marked done.
 
+## Flagged Issues
+
+**2026-04-01 — Miller Comprehensive Review**
+- Miller flagged zero test coverage across entire solution as critical gap
+- Baseline tests now being written for:
+  - `ServerAuthenticationStateProvider` (High priority)
+  - `BlobStorageService` (High priority)
+  - `JobMetadataService` (High priority)
+  - API Endpoints (High priority)
+  - Blazor Pages (Medium priority)
+- Test projects must be created and baseline coverage achieved before production deployment
+
 ## Learnings
