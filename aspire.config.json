@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "src/MeetingMinutes.AppHost/MeetingMinutes.AppHost.csproj"
+  }
+}
