@@ -220,3 +220,23 @@
 4. Submit to Miller for review
 
 ---
+
+## Learnings
+
+### 2026-04-01: OpenAI SDK Migration — Test Update for SummarizationServiceTests
+
+**Task:** Update `SummarizationServiceTests.cs` and test csproj for the team's migration from `Azure.AI.OpenAI` → `OpenAI` (official SDK v2.2.0).
+
+**Finding — Production code was already migrated:**  
+The view tool returned stale data; the actual `SummarizationService.cs` already used `OpenAIClient` and `MeetingMinutes.Api.csproj` already referenced `OpenAI` v2.2.0. The test file was the only thing still referencing `Azure.AI.OpenAI`.
+
+**Finding — `OpenAIClient` IS mockable with Moq:**  
+`OpenAI.OpenAIClient` is not sealed and `GetChatClient()` is a `virtual` method. Moq can mock it without any workarounds. The previous concern about OpenAI SDK mockability (documented in earlier history) was based on `AzureOpenAIClient` behavior — the official `OpenAI` SDK is more test-friendly.
+
+**Changes made:**
+- `SummarizationServiceTests.cs`: `using Azure.AI.OpenAI;` → `using OpenAI;`, `Mock<AzureOpenAIClient>` → `Mock<OpenAIClient>` (field + constructor)
+- `MeetingMinutes.Tests.csproj`: No change needed — no explicit Azure.AI.OpenAI reference; OpenAI package flows transitively from the Api project reference
+
+**Test results:** 28 passed, 10 skipped, 0 failed (same baseline as before)
+
+---

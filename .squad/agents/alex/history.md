@@ -31,6 +31,12 @@
 
 ## Learnings
 
+### 2026-04-01 — README Updated: Azure OpenAI → Direct OpenAI API Key
+
+- Replaced the Azure OpenAI section (Azure Portal, deployments, DefaultAzureCredential endpoint) with a direct OpenAI API key section pointing to platform.openai.com.
+- Removed the `az login` / Cognitive Services role note — no longer relevant without DefaultAzureCredential.
+- Secret format changed from an endpoint URL (`https://...`) to an API key (`sk-...`).
+
 ### 2026-04-01 — README and Charter Updated for Interactive Server Migration
 
 - `README.md` updated: Architecture section now reflects Blazor Interactive Server (not WASM/BFF); Running Locally clarifies three separate Aspire-managed services (Azurite, API, Web); OAuth redirect URI notes now explicitly call out the **Web** port; new `## Testing` section documents all three test suites (unit, bUnit component, Playwright E2E).

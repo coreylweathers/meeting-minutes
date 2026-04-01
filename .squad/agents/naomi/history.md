@@ -81,7 +81,16 @@
 - Added `using MeetingMinutes.Api.Workers;` directive to `Program.cs`.
 - Build: **0 errors, 0 warnings** (initial cache error resolved on clean rebuild).
 
-### 2026-04-01: Baseline Test Suite Established ✅
+
+### 2026-04-01 — OpenAI SDK Migration (Task: naomi-openai-migration)
+- Swapped `Azure.AI.OpenAI` v2.2.0-beta.4 → `OpenAI` v2.2.0 (official OpenAI .NET SDK) in `MeetingMinutes.Api.csproj`.
+- `SummarizationService.cs`: `AzureOpenAIClient` → `OpenAIClient`; `using Azure.AI.OpenAI` → `using OpenAI`. `GetChatClient` and `CompleteChatAsync` call signatures unchanged.
+- `Program.cs`: replaced `AzureOpenAIClient(new Uri(...), new DefaultAzureCredential())` with `OpenAIClient(new ApiKeyCredential(apiKey))`. Connection string `ConnectionStrings:openai` now holds the raw API key (`sk-...`), not an endpoint URL.
+- Added `using System.ClientModel;` to `Program.cs` — `ApiKeyCredential` lives there, not in `OpenAI` namespace.
+- Removed `using Azure.AI.OpenAI` and `using Azure.Identity` from `Program.cs` (no longer needed; Aspire handles blob/table auth internally).
+- `appsettings.json`: replaced `AzureOpenAI` section with `OpenAI: { Model: "gpt-4o-mini" }`. API key is NOT stored in appsettings; it is sourced from user-secrets / environment variable connection string.
+- Build: **0 errors, 0 warnings**.
+
 
 **Status:** ✅ COMPLETE — 28 tests passing, awaiting Miller review
 

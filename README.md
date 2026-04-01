@@ -11,16 +11,15 @@ AI-powered meeting transcription and summarization.
 
 ### Getting Your Credentials
 
-#### Azure OpenAI (`ConnectionStrings:openai`)
-1. Go to [Azure Portal](https://portal.azure.com) → Create a resource → **Azure OpenAI**
-2. Select a region (e.g. East US), pricing tier: **Standard S0**
-3. Once deployed, go to **Keys and Endpoint** — copy the **Endpoint URL** (format: `https://<name>.openai.azure.com/`)
-4. Go to **Azure OpenAI Studio** → Deployments → **New deployment** → choose model **gpt-4o-mini**, name it `gpt-4o-mini`
-5. Set the secret to the endpoint URL (the key itself is not needed — the app uses `DefaultAzureCredential`):
+#### OpenAI API Key (`ConnectionStrings:openai`)
+1. Go to [OpenAI Platform](https://platform.openai.com) → **API Keys** → **Create new secret key**
+2. Copy the key (starts with `sk-`)
+3. Set the secret on the **AppHost** project:
    ```bash
-   dotnet user-secrets set "ConnectionStrings:openai" "https://<your-resource>.openai.azure.com/"
+   cd src/MeetingMinutes.AppHost
+   dotnet user-secrets set "ConnectionStrings:openai" "sk-<your-key>"
    ```
-   > 💡 For local dev, run `az login` first so `DefaultAzureCredential` can authenticate. Assign yourself the **Cognitive Services OpenAI User** role on the resource.
+   > 💡 The app uses the `gpt-4o-mini` model. Make sure your OpenAI account has API access enabled.
 
 #### Azure AI Speech (`ConnectionStrings:speech`)
 1. Go to [Azure Portal](https://portal.azure.com) → Create a resource → **Azure AI Speech** (under Azure AI services)

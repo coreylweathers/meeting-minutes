@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
-using Azure.AI.OpenAI;
-using Azure.Identity;
+using OpenAI;
+using System.ClientModel;
 using System.Security.Claims;
 using MeetingMinutes.Shared.DTOs;
 using MeetingMinutes.Shared.Entities;
@@ -20,11 +20,10 @@ builder.AddServiceDefaults();
 builder.AddAzureBlobServiceClient("blobs");
 builder.AddAzureTableServiceClient("tables");
 
-// Manual AzureOpenAIClient registration (no Aspire preview package needed)
-var openAiEndpoint = builder.Configuration.GetConnectionString("openai") 
-    ?? builder.Configuration["AZURE_OPENAI_ENDPOINT"]
-    ?? throw new InvalidOperationException("OpenAI connection string not configured. Set 'ConnectionStrings:openai' or 'AZURE_OPENAI_ENDPOINT'.");
-builder.Services.AddSingleton(new AzureOpenAIClient(new Uri(openAiEndpoint), new DefaultAzureCredential()));
+// OpenAI client registration — API key comes from ConnectionStrings:openai (user-secrets / env var)
+var openAiApiKey = builder.Configuration.GetConnectionString("openai")
+    ?? throw new InvalidOperationException("OpenAI API key not configured. Set 'ConnectionStrings:openai' to your OpenAI API key (sk-...).");
+builder.Services.AddSingleton(new OpenAIClient(openAiApiKey));
 
 builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
 builder.Services.AddSingleton<IJobMetadataService, JobMetadataService>();

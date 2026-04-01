@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Azure.AI.OpenAI;
+using OpenAI;
 using MeetingMinutes.Shared.DTOs;
 using OpenAI.Chat;
 
@@ -7,10 +7,10 @@ namespace MeetingMinutes.Api.Services;
 
 public class SummarizationService : ISummarizationService
 {
-    private readonly AzureOpenAIClient _client;
+    private readonly OpenAIClient _client;
     private readonly ChatClient _chatClient;
 
-    public SummarizationService(AzureOpenAIClient client)
+    public SummarizationService(OpenAIClient client)
     {
         _client = client;
         _chatClient = _client.GetChatClient("gpt-4o-mini");

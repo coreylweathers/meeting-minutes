@@ -1,4 +1,4 @@
-using Azure.AI.OpenAI;
+using OpenAI;
 using MeetingMinutes.Api.Services;
 using MeetingMinutes.Shared.DTOs;
 using Moq;
@@ -11,12 +11,12 @@ namespace MeetingMinutes.Tests.Services;
 
 public class SummarizationServiceTests
 {
-    private readonly Mock<AzureOpenAIClient> _mockOpenAIClient;
+    private readonly Mock<OpenAIClient> _mockOpenAIClient;
     private readonly Mock<ChatClient> _mockChatClient;
 
     public SummarizationServiceTests()
     {
-        _mockOpenAIClient = new Mock<AzureOpenAIClient>();
+        _mockOpenAIClient = new Mock<OpenAIClient>();
         _mockChatClient = new Mock<ChatClient>();
 
         _mockOpenAIClient

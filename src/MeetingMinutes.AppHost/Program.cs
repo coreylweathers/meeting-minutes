@@ -7,8 +7,8 @@ var storage = builder.AddAzureStorage("storage")
 var blobs = storage.AddBlobs("blobs");
 var tables = storage.AddTables("tables");
 
-// Azure OpenAI — use AddConnectionString for local dev 
-// (points to real Azure OpenAI; devs set env var AZURE_OPENAI_ENDPOINT or user-secrets)
+// OpenAI — set via user-secrets on the AppHost project:
+// dotnet user-secrets set "ConnectionStrings:openai" "sk-<your-key>"
 var openai = builder.AddConnectionString("openai");
 
 // Azure Speech — connection string for local dev
