@@ -145,6 +145,26 @@ Orchestrated multi-agent implementation of Blazor WebAssembly → Interactive Se
 
 ---
 
+### 2026-04-01: Baseline Test Suite Established ✅
+
+**Status:** ✅ COMPLETE — 28 tests passing, awaiting Miller review
+
+Bobbie established baseline test suite covering core services and auth layer. Baseline tests now exist in `tests/MeetingMinutes.Tests/`:
+- **JobMetadataService:** 9 unit tests (create, read, update, status, errors, concurrency)
+- **BlobStorageService:** 6 unit tests (upload, download, SAS URL generation, error handling)
+- **SpeechTranscriptionService:** 4 unit tests (3 passing config validation, 1 skipped)
+- **SummarizationService:** 3 unit tests (2 passing, 1 skipped for OpenAI mocking)
+- **ServerAuthenticationStateProvider:** 7 unit tests (auth, anonymous, null-safety, claims)
+- **API Endpoints:** 8 integration tests scaffolded (all skipped; requires WebApplicationFactory)
+
+**Results:** 38 total tests, 28 passing (100% of runnable), 10 skipped. Build clean (0 errors, 0 warnings).
+
+**Key Findings:** Thread-safety race condition in JobMetadataService._tableInitialized confirmed (not critical). All null-safety scenarios tested. Skipped tests include clear implementation notes.
+
+**Orchestration Log:** `.squad/orchestration-log/2026-04-01T17-46-57Z-bobbie-baseline-tests.md`
+
+---
+
 ### 2025-01-27: API Auth Endpoints (api-auth)
 **Status:** ✅ Complete (pending Miller review)
 

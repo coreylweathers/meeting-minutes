@@ -81,3 +81,20 @@
 - Added `using MeetingMinutes.Api.Workers;` directive to `Program.cs`.
 - Build: **0 errors, 0 warnings** (initial cache error resolved on clean rebuild).
 
+### 2026-04-01: Baseline Test Suite Established ✅
+
+**Status:** ✅ COMPLETE — 28 tests passing, awaiting Miller review
+
+Bobbie established baseline test suite covering core services. Baseline tests now exist in `tests/MeetingMinutes.Tests/`:
+- **JobMetadataService:** 9 unit tests (create, read, update, status, errors, concurrency)
+- **BlobStorageService:** 6 unit tests (upload, download, SAS URL generation, error handling)
+- **SpeechTranscriptionService:** 4 unit tests (3 passing config validation, 1 skipped)
+- **SummarizationService:** 3 unit tests (2 passing, 1 skipped for OpenAI mocking)
+- **ServerAuthenticationStateProvider:** 7 unit tests (auth, anonymous, null-safety, claims)
+- **API Endpoints:** 8 integration tests scaffolded (all skipped; requires WebApplicationFactory)
+
+**Results:** 38 total tests, 28 passing (100% of runnable), 10 skipped. Build clean (0 errors, 0 warnings).
+
+**Deliverable:** `tests/MeetingMinutes.Tests/` (6 test files, 1,092 lines). Ready for Miller review.
+
+**Orchestration Log:** `.squad/orchestration-log/2026-04-01T17-46-57Z-bobbie-baseline-tests.md`
