@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "assignments": [
+    {
+      "assignment_id": "meeting-minutes-2026-03-31",
+      "universe": "the-expanse",
+      "created_at": "2026-03-31T20:49:05Z",
+      "snapshot": [
+        { "name": "Holden", "role": "Lead Architect" },
+        { "name": "Naomi", "role": "Backend Dev" },
+        { "name": "Alex", "role": "Frontend Dev" },
+        { "name": "Amos", "role": "DevOps / Infrastructure" },
+        { "name": "Bobbie", "role": "Tester / QA" }
+      ]
+    }
+  ]
+}

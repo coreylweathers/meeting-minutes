@@ -1,0 +1,183 @@
+@page "/upload"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Upload - Meeting Minutes</PageTitle>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <h2>Upload Meeting Video</h2>
+
+            @if (uploadState == UploadState.Success && createdJobId != null)
+            {
+                <div class="alert alert-success" role="alert">
+                    <h4 class="alert-heading">Job created successfully!</h4>
+                    <p>Your video has been uploaded and is being processed.</p>
+                    <hr>
+                    <a href="/jobs/@createdJobId" class="btn btn-primary">View Job Status →</a>
+                </div>
+            }
+            else if (uploadState == UploadState.Error)
+            {
+                <div class="alert alert-danger" role="alert">
+                    <h4 class="alert-heading">Upload failed</h4>
+                    <p>@errorMessage</p>
+                    <button class="btn btn-outline-danger" @onclick="ResetForm">Try Again</button>
+                </div>
+            }
+            else
+            {
+                <EditForm Model="@uploadModel" OnValidSubmit="@HandleSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+                        <InputText id="title" class="form-control" @bind-Value="uploadModel.Title" 
+                                   placeholder="Enter meeting title" disabled="@(uploadState == UploadState.Uploading)" />
+                        <ValidationMessage For="@(() => uploadModel.Title)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Video File <span class="text-danger">*</span></label>
+                        <InputFile id="file" class="form-control" accept="video/*" 
+                                   OnChange="@OnFileSelected" disabled="@(uploadState == UploadState.Uploading)" />
+                        @if (!string.IsNullOrEmpty(validationError))
+                        {
+                            <div class="text-danger mt-1">@validationError</div>
+                        }
+                        @if (selectedFile != null)
+                        {
+                            <div class="text-muted mt-1">Selected: @selectedFile.Name (@FormatFileSize(selectedFile.Size))</div>
+                        }
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@(uploadState == UploadState.Uploading || selectedFile == null)">
+                            @if (uploadState == UploadState.Uploading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Uploading...</span>
+                            }
+                            else
+                            {
+                                <span>Upload Video</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private UploadModel uploadModel = new();
+    private IBrowserFile? selectedFile;
+    private UploadState uploadState = UploadState.Idle;
+    private string? errorMessage;
+    private string? validationError;
+    private string? createdJobId;
+
+    private enum UploadState
+    {
+        Idle,
+        Uploading,
+        Success,
+        Error
+    }
+
+    private class UploadModel
+    {
+        [Required(ErrorMessage = "Title is required")]
+        public string Title { get; set; } = string.Empty;
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        validationError = null;
+    }
+
+    private async Task HandleSubmit()
+    {
+        validationError = null;
+
+        if (selectedFile == null)
+        {
+            validationError = "Please select a video file";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(uploadModel.Title))
+        {
+            validationError = "Please enter a title";
+            return;
+        }
+
+        uploadState = UploadState.Uploading;
+        errorMessage = null;
+
+        try
+        {
+            var content = new MultipartFormDataContent();
+            content.Add(new StringContent(uploadModel.Title), "title");
+
+            var fileStream = selectedFile.OpenReadStream(maxAllowedSize: 1024 * 1024 * 500); // 500 MB max
+            var streamContent = new StreamContent(fileStream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(selectedFile.ContentType);
+            content.Add(streamContent, "file", selectedFile.Name);
+
+            var response = await Http.PostAsync("/api/jobs", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jobDto = await response.Content.ReadFromJsonAsync<MeetingMinutes.Shared.DTOs.JobDto>();
+                if (jobDto != null)
+                {
+                    createdJobId = jobDto.JobId;
+                    uploadState = UploadState.Success;
+                }
+                else
+                {
+                    throw new Exception("Failed to parse server response");
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Upload failed: {response.StatusCode}. {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            uploadState = UploadState.Error;
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void ResetForm()
+    {
+        uploadState = UploadState.Idle;
+        uploadModel = new();
+        selectedFile = null;
+        errorMessage = null;
+        validationError = null;
+        createdJobId = null;
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}

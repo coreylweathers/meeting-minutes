@@ -1,0 +1,183 @@
+@page "/jobs"
+@attribute [Authorize]
+@using MeetingMinutes.Shared.DTOs
+@using MeetingMinutes.Shared.Enums
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>Jobs - Meeting Minutes</PageTitle>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <h2 class="mb-4">Processing Jobs</h2>
+
+            @if (isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Loading jobs...</p>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Error:</strong> @errorMessage
+                </div>
+            }
+            else if (jobs == null || !jobs.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 4rem; color: #6c757d;"></i>
+                    <h4 class="mt-3">No meetings yet</h4>
+                    <p class="text-muted">Upload a meeting video to get started</p>
+                    <a href="/upload" class="btn btn-primary mt-3">
+                        <i class="bi bi-upload me-2"></i>Upload Meeting
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>File Name</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var job in jobs.OrderByDescending(j => j.CreatedAt))
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@job.FileName</strong>
+                                    </td>
+                                    <td>
+                                        @GetStatusBadge(job.Status)
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">@FormatDate(job.CreatedAt)</small>
+                                    </td>
+                                    <td>
+                                        <a href="/jobs/@job.JobId" class="btn btn-sm btn-outline-primary">
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<JobDto>? jobs;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private System.Threading.Timer? _refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadJobsAsync();
+        StartPollingIfNeeded();
+    }
+
+    private async Task LoadJobsAsync()
+    {
+        try
+        {
+            isLoading = jobs == null; // Only show loading on first load
+            errorMessage = null;
+
+            jobs = await Http.GetFromJsonAsync<List<JobDto>>("/api/jobs");
+
+            StartPollingIfNeeded();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load jobs: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void StartPollingIfNeeded()
+    {
+        _refreshTimer?.Dispose();
+        _refreshTimer = null;
+
+        if (jobs?.Any(j => !IsTerminal(j.Status)) == true)
+        {
+            _refreshTimer = new System.Threading.Timer(async _ =>
+            {
+                await LoadJobsAsync();
+                await InvokeAsync(StateHasChanged);
+            }, null, 5000, 5000);
+        }
+    }
+
+    private bool IsTerminal(JobStatus status)
+    {
+        return status == JobStatus.Completed || status == JobStatus.Failed;
+    }
+
+    private RenderFragment GetStatusBadge(JobStatus status)
+    {
+        return status switch
+        {
+            JobStatus.Pending => @<span class="badge bg-secondary">
+                <i class="bi bi-clock me-1"></i>Pending
+            </span>,
+            JobStatus.ExtractingAudio => @<span class="badge bg-primary">
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>Extracting Audio
+            </span>,
+            JobStatus.Transcribing => @<span class="badge bg-info">
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>Transcribing
+            </span>,
+            JobStatus.Summarizing => @<span class="badge bg-primary">
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>Summarizing
+            </span>,
+            JobStatus.Completed => @<span class="badge bg-success">
+                <i class="bi bi-check-circle me-1"></i>Completed
+            </span>,
+            JobStatus.Failed => @<span class="badge bg-danger">
+                <i class="bi bi-x-circle me-1"></i>Failed
+            </span>,
+            _ => @<span class="badge bg-secondary">Unknown</span>
+        };
+    }
+
+    private string FormatDate(DateTimeOffset date)
+    {
+        var timeSpan = DateTimeOffset.UtcNow - date;
+
+        if (timeSpan.TotalMinutes < 1)
+            return "Just now";
+        if (timeSpan.TotalMinutes < 60)
+            return $"{(int)timeSpan.TotalMinutes} minute{((int)timeSpan.TotalMinutes == 1 ? "" : "s")} ago";
+        if (timeSpan.TotalHours < 24)
+            return $"{(int)timeSpan.TotalHours} hour{((int)timeSpan.TotalHours == 1 ? "" : "s")} ago";
+        if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays} day{((int)timeSpan.TotalDays == 1 ? "" : "s")} ago";
+
+        return date.LocalDateTime.ToString("MMM dd, yyyy 'at' h:mm tt");
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+    }
+}

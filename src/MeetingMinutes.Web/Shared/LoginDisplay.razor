@@ -1,0 +1,10 @@
+<AuthorizeView>
+    <Authorized>
+        <span class="text-light me-3">Hello, @context.User.Identity?.Name!</span>
+        <a href="/api/auth/logout" class="btn btn-sm btn-outline-light">Log out</a>
+    </Authorized>
+    <NotAuthorized>
+        <a href="/api/auth/login/microsoft" class="btn btn-sm btn-primary me-2">Sign in with Microsoft</a>
+        <a href="/api/auth/login/google" class="btn btn-sm btn-outline-light">Sign in with Google</a>
+    </NotAuthorized>
+</AuthorizeView>

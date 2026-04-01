@@ -1,0 +1,448 @@
+@page "/jobs/{Id}"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject IJSRuntime JS
+@using MeetingMinutes.Shared.DTOs
+@using MeetingMinutes.Shared.Enums
+@using System.Timers
+@implements IDisposable
+
+<PageTitle>Job Details - Meeting Minutes</PageTitle>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (job == null)
+            {
+                <div class="alert alert-danger">Job not found.</div>
+            }
+            else
+            {
+                <!-- Job Header -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h2>@job.FileName</h2>
+                            <small class="text-muted">Created: @job.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</small>
+                        </div>
+                        <span class="badge @GetStatusBadgeClass()">@job.Status</span>
+                    </div>
+                    @if (IsProcessing())
+                    {
+                        <div class="mt-3">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Processing...</span>
+                            </div>
+                            <span>Processing...</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(job.ErrorMessage))
+                    {
+                        <div class="alert alert-danger mt-3">
+                            <strong>Error:</strong> @job.ErrorMessage
+                        </div>
+                    }
+                </div>
+
+                <!-- Navigation -->
+                <div class="mb-3">
+                    <a href="/jobs" class="btn btn-secondary">&larr; Back to Jobs</a>
+                </div>
+
+                @if (job.Status == JobStatus.Completed)
+                {
+                    <!-- Transcript Section -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0">Transcript</h4>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="CopyTranscript">
+                                Copy
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            @if (transcriptLoading)
+                            {
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Loading transcript...</span>
+                                </div>
+                            }
+                            else if (!string.IsNullOrEmpty(transcript))
+                            {
+                                <pre class="transcript-box">@transcript</pre>
+                            }
+                            else
+                            {
+                                <p class="text-muted">No transcript available.</p>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Summary Section -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0">Summary</h4>
+                            @if (!isEditMode)
+                            {
+                                <button class="btn btn-sm btn-outline-primary" @onclick="ToggleEditMode">
+                                    Edit
+                                </button>
+                            }
+                        </div>
+                        <div class="card-body">
+                            @if (summaryLoading)
+                            {
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Loading summary...</span>
+                                </div>
+                            }
+                            else if (summary != null)
+                            {
+                                @if (isEditMode)
+                                {
+                                    <!-- Edit Mode -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Title</label>
+                                        <input type="text" class="form-control" @bind="editTitle" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Duration (minutes)</label>
+                                        <input type="number" class="form-control" @bind="editDurationMinutes" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Attendees (comma-separated)</label>
+                                        <textarea class="form-control" rows="2" @bind="editAttendees"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Key Points (one per line)</label>
+                                        <textarea class="form-control" rows="4" @bind="editKeyPoints"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Action Items (one per line)</label>
+                                        <textarea class="form-control" rows="4" @bind="editActionItems"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Decisions (one per line)</label>
+                                        <textarea class="form-control" rows="4" @bind="editDecisions"></textarea>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-primary" @onclick="SaveSummary" disabled="@isSaving">
+                                            @if (isSaving)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            }
+                                            Save
+                                        </button>
+                                        <button class="btn btn-secondary" @onclick="CancelEdit" disabled="@isSaving">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <!-- Display Mode -->
+                                    <div class="mb-3">
+                                        <h5 class="fw-bold">Title</h5>
+                                        <p>@summary.Title</p>
+                                    </div>
+                                    <div class="mb-3">
+                                        <h5 class="fw-bold">Duration</h5>
+                                        <p>@summary.DurationMinutes min</p>
+                                    </div>
+                                    <div class="mb-3">
+                                        <h5 class="fw-bold">Attendees</h5>
+                                        <ul>
+                                            @foreach (var attendee in summary.Attendees)
+                                            {
+                                                <li>@attendee</li>
+                                            }
+                                        </ul>
+                                    </div>
+                                    <div class="mb-3">
+                                        <h5 class="fw-bold">Key Points</h5>
+                                        <ul>
+                                            @foreach (var point in summary.KeyPoints)
+                                            {
+                                                <li>@point</li>
+                                            }
+                                        </ul>
+                                    </div>
+                                    <div class="mb-3">
+                                        <h5 class="fw-bold">Action Items</h5>
+                                        <ul>
+                                            @foreach (var item in summary.ActionItems)
+                                            {
+                                                <li>@item</li>
+                                            }
+                                        </ul>
+                                    </div>
+                                    <div class="mb-3">
+                                        <h5 class="fw-bold">Decisions</h5>
+                                        <ul>
+                                            @foreach (var decision in summary.Decisions)
+                                            {
+                                                <li>@decision</li>
+                                            }
+                                        </ul>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted">No summary available.</p>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .transcript-box {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    private JobDto? job;
+    private string? transcript;
+    private SummaryDto? summary;
+    private bool isLoading = true;
+    private bool transcriptLoading = false;
+    private bool summaryLoading = false;
+    private bool isEditMode = false;
+    private bool isSaving = false;
+    private Timer? pollTimer;
+
+    // Edit mode fields
+    private string editTitle = string.Empty;
+    private int editDurationMinutes;
+    private string editAttendees = string.Empty;
+    private string editKeyPoints = string.Empty;
+    private string editActionItems = string.Empty;
+    private string editDecisions = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadJob();
+    }
+
+    private async Task LoadJob()
+    {
+        try
+        {
+            isLoading = true;
+            job = await Http.GetFromJsonAsync<JobDto>($"/api/jobs/{Id}");
+            
+            if (job?.Status == JobStatus.Completed)
+            {
+                StopPolling();
+                await LoadTranscript();
+                await LoadSummary();
+            }
+            else if (IsProcessing())
+            {
+                StartPolling();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading job: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadTranscript()
+    {
+        try
+        {
+            transcriptLoading = true;
+            transcript = await Http.GetStringAsync($"/api/jobs/{Id}/transcript");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading transcript: {ex.Message}");
+        }
+        finally
+        {
+            transcriptLoading = false;
+        }
+    }
+
+    private async Task LoadSummary()
+    {
+        try
+        {
+            summaryLoading = true;
+            summary = await Http.GetFromJsonAsync<SummaryDto>($"/api/jobs/{Id}/summary");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading summary: {ex.Message}");
+        }
+        finally
+        {
+            summaryLoading = false;
+        }
+    }
+
+    private void StartPolling()
+    {
+        StopPolling();
+        pollTimer = new Timer(5000);
+        pollTimer.Elapsed += async (sender, e) => await OnPollTick();
+        pollTimer.Start();
+    }
+
+    private void StopPolling()
+    {
+        if (pollTimer != null)
+        {
+            pollTimer.Stop();
+            pollTimer.Dispose();
+            pollTimer = null;
+        }
+    }
+
+    private async Task OnPollTick()
+    {
+        try
+        {
+            var updatedJob = await Http.GetFromJsonAsync<JobDto>($"/api/jobs/{Id}");
+            if (updatedJob != null)
+            {
+                job = updatedJob;
+                
+                if (job.Status == JobStatus.Completed || job.Status == JobStatus.Failed)
+                {
+                    StopPolling();
+                    
+                    if (job.Status == JobStatus.Completed)
+                    {
+                        await LoadTranscript();
+                        await LoadSummary();
+                    }
+                }
+                
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error polling job: {ex.Message}");
+        }
+    }
+
+    private bool IsProcessing()
+    {
+        return job?.Status == JobStatus.Pending ||
+               job?.Status == JobStatus.ExtractingAudio ||
+               job?.Status == JobStatus.Transcribing ||
+               job?.Status == JobStatus.Summarizing;
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        return job?.Status switch
+        {
+            JobStatus.Completed => "bg-success",
+            JobStatus.Failed => "bg-danger",
+            _ => "bg-warning"
+        };
+    }
+
+    private async Task CopyTranscript()
+    {
+        if (!string.IsNullOrEmpty(transcript))
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", transcript);
+        }
+    }
+
+    private void ToggleEditMode()
+    {
+        isEditMode = true;
+        InitializeEditFields();
+    }
+
+    private void InitializeEditFields()
+    {
+        if (summary != null)
+        {
+            editTitle = summary.Title;
+            editDurationMinutes = summary.DurationMinutes;
+            editAttendees = string.Join(", ", summary.Attendees);
+            editKeyPoints = string.Join("\n", summary.KeyPoints);
+            editActionItems = string.Join("\n", summary.ActionItems);
+            editDecisions = string.Join("\n", summary.Decisions);
+        }
+    }
+
+    private void CancelEdit()
+    {
+        isEditMode = false;
+    }
+
+    private async Task SaveSummary()
+    {
+        try
+        {
+            isSaving = true;
+            
+            var request = new UpdateSummaryRequest(
+                Title: editTitle,
+                Attendees: editAttendees.Split(',').Select(a => a.Trim()).Where(a => !string.IsNullOrWhiteSpace(a)).ToArray(),
+                KeyPoints: editKeyPoints.Split('\n').Select(k => k.Trim()).Where(k => !string.IsNullOrWhiteSpace(k)).ToArray(),
+                ActionItems: editActionItems.Split('\n').Select(a => a.Trim()).Where(a => !string.IsNullOrWhiteSpace(a)).ToArray(),
+                Decisions: editDecisions.Split('\n').Select(d => d.Trim()).Where(d => !string.IsNullOrWhiteSpace(d)).ToArray(),
+                DurationMinutes: editDurationMinutes
+            );
+
+            var response = await Http.PutAsJsonAsync($"/api/jobs/{Id}/summary", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadSummary();
+                isEditMode = false;
+            }
+            else
+            {
+                Console.WriteLine($"Error saving summary: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving summary: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        StopPolling();
+    }
+}

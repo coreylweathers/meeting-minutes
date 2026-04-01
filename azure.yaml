@@ -1,0 +1,6 @@
+name: meeting-minutes
+services:
+  api:
+    project: ./src/MeetingMinutes.AppHost
+    language: dotnet
+    host: containerapp

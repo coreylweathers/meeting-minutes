@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "universe_allowlist": ["the-expanse"],
+  "max_team_size": 10,
+  "overflow_strategy": "diegetic_expansion",
+  "scribe_exempt": true,
+  "ralph_exempt": true,
+  "copilot_exempt": true
+}

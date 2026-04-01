@@ -6,14 +6,25 @@ How to decide who handles what.
 
 | Work Type | Route To | Examples |
 |-----------|----------|----------|
-| {domain 1} | {Name} | {example tasks} |
-| {domain 2} | {Name} | {example tasks} |
-| {domain 3} | {Name} | {example tasks} |
-| Code review | {Name} | Review PRs, check quality, suggest improvements |
-| Testing | {Name} | Write tests, find edge cases, verify fixes |
-| Scope & priorities | {Name} | What to build next, trade-offs, decisions |
-| Async issue work (bugs, tests, small features) | @copilot 🤖 | Well-defined tasks matching capability profile |
-| Session logging | Scribe | Automatic — never needs routing |
+| Architecture, project structure, API endpoints | Holden 🏗️ | Solution scaffold, Program.cs, DI wiring, patterns |
+| Backend services, Azure integrations, worker | Naomi 🔧 | BlobStorageService, SpeechService, JobProcessingWorker |
+| Blazor WASM pages and components | Alex ⚛️ | Upload page, Jobs list, Job detail, auth UI |
+| Aspire, azd, Bicep, deployment config | Amos ⚙️ | AppHost, azure.yaml, Container Apps, Bicep |
+| Tests, edge cases, QA | Bobbie 🧪 | xUnit tests, integration tests, edge case review |
+| **Code review (ALL code, ALL agents)** | **Miller 🔍** | **Every task output — approve or reject before DONE** |
+| Session logging | Scribe 📋 | Automatic — never needs routing |
+
+## ⚠️ Review Gate (MANDATORY)
+
+**No task is complete until Miller has reviewed and approved the code.**
+
+Workflow for every task that produces code:
+1. Agent completes work → outputs code
+2. **Miller reviews** (spawned as sync — blocks completion)
+3. Miller **approves** → task marked DONE, Scribe logs
+4. Miller **rejects** → coordinator assigns revision to a DIFFERENT agent (original author locked out), restart from step 1
+
+This gate applies to: all `.cs` files, Razor pages, Bicep, Aspire config, `azure.yaml`. It does NOT apply to: documentation edits, history.md updates, log entries.
 
 ## Issue Routing
 
