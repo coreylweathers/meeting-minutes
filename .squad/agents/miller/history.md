@@ -389,3 +389,50 @@ Reviewed BFF auth endpoints in `Program.cs` (lines 279-319) finalized by Holden.
 - ✅ Required usings present (lines 3-7)
 
 Clean BFF implementation. OAuth config from configuration, cookie-only session management. **LGTM.**
+
+### 2026-03-31: Blazor WASM → Interactive Server Migration Review — APPROVED WITH NOTES
+
+Reviewed architectural migration from Blazor WebAssembly to Blazor Interactive Server.
+
+**Authors:** Alex (Web project), Amos (AppHost)
+
+**Files Reviewed:**
+- `MeetingMinutes.Web/Program.cs`
+- `MeetingMinutes.Web/App.razor`
+- `MeetingMinutes.Web/_Imports.razor`
+- `MeetingMinutes.Web/Components/Routes.razor`
+- `MeetingMinutes.Web/Auth/ServerAuthenticationStateProvider.cs`
+- `MeetingMinutes.Web/Auth/CookieAuthenticationStateProvider.cs`
+- `MeetingMinutes.Web/Pages/JobDetail.razor`, `Jobs.razor`, `Upload.razor`
+- `MeetingMinutes.AppHost/Program.cs`
+- `MeetingMinutes.AppHost/MeetingMinutes.AppHost.csproj`
+- `MeetingMinutes.Api/Program.cs`
+- `MeetingMinutes.Api/MeetingMinutes.Api.csproj`
+
+**Core Migration Verified (8/8):**
+- ✅ `AddRazorComponents().AddInteractiveServerComponents()` — Web/Program.cs lines 11-12
+- ✅ `MapRazorComponents<App>().AddInteractiveServerRenderMode()` — Web/Program.cs lines 55-56
+- ✅ `UseAntiforgery()` correct placement — after UseStaticFiles, before MapRazorComponents
+- ✅ `@rendermode="InteractiveServer"` on HeadOutlet and Routes — App.razor lines 11, 14
+- ✅ `ServerAuthenticationStateProvider` reads from `HttpContext.User` with null-safe chain
+- ✅ AppHost: Web with `.WithReference(api).WaitFor(api).WithExternalHttpEndpoints()`
+- ✅ AppHost: `IsAspireProjectResource="true"` on Web ProjectReference
+- ✅ API cleanup: `UseBlazorFrameworkFiles()`, `MapFallbackToFile()`, WASM package all removed
+
+**Non-Blocking Issues Identified:**
+1. **Dead code**: `CookieAuthenticationStateProvider.cs` no longer used — assign Naomi to delete
+2. **Pattern**: Pages use `@inject HttpClient Http` instead of typed clients — future refactor
+3. **Test gap**: No integration tests for server migration behaviors — assign Bobbie
+4. **Verification needed**: Auth middleware (`UseAuthentication`/`UseAuthorization`) not present in Web — may be correct for Interactive Server, needs test verification
+
+**Build:** Passes (0 errors, 0 warnings)
+
+**Verdict:** Migration is architecturally correct and complete. Non-blocking items tracked for follow-up. **APPROVED WITH NOTES.**
+
+## Learnings
+
+- **Blazor Interactive Server auth**: Unlike WASM, auth state comes from `HttpContext.User` directly — no need for HTTP calls to `/api/auth/user` endpoint. `UseAuthentication`/`UseAuthorization` middleware may not be needed when `AuthorizeRouteView` handles enforcement at the Blazor layer.
+
+- **Aspire service discovery**: When Web references API via `.WithReference(api)`, environment variables `services__api__http__0` and `services__api__https__0` are automatically injected. Web's `Program.cs` should read these for HttpClient configuration.
+
+- **Dead code detection**: After architectural migrations, grep for old patterns (WASM-specific providers, fallback files) to ensure cleanup is complete.

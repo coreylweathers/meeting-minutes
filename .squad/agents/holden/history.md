@@ -2,11 +2,11 @@
 
 **Project:** meeting-minutes  
 **Requested by:** Corey Weathers  
-**Stack:** .NET 9, ASP.NET Core Minimal API, Blazor WebAssembly, Azure Blob Storage (Aspire.Azure.Storage.Blobs), Azure Table Storage (Aspire.Azure.Data.Tables), Azure AI Speech (Microsoft.CognitiveServices.Speech), Azure OpenAI GPT-4o Mini (Azure.AI.OpenAI), FFMpegCore for audio extraction, .NET Aspire 9.1, Azure Container Apps deployment  
-**Auth:** Microsoft + Google OAuth, BFF cookie pattern (API manages cookies, Blazor WASM never holds tokens)  
+**Stack:** .NET 10, ASP.NET Core Minimal API, Blazor Interactive Server, Azure Blob Storage (Aspire.Azure.Storage.Blobs), Azure Table Storage (Aspire.Azure.Data.Tables), Azure AI Speech (Microsoft.CognitiveServices.Speech), Azure OpenAI GPT-4o Mini (Azure.AI.OpenAI), FFMpegCore for audio extraction, .NET Aspire 13.2, Azure Container Apps deployment  
+**Auth:** Microsoft + Google OAuth, cookie-based auth in Web project (Interactive Server)  
 **Worker:** BackgroundService inside the API process (cost: one Container App)  
 **Cost decisions:** Azure Table Storage (not Cosmos DB), GPT-4o Mini (not GPT-4o), scale-to-zero Container Apps  
-**Solution projects:** MeetingMinutes.AppHost, MeetingMinutes.ServiceDefaults, MeetingMinutes.Api, MeetingMinutes.Web (Blazor WASM), MeetingMinutes.Shared  
+**Solution projects:** MeetingMinutes.AppHost, MeetingMinutes.ServiceDefaults, MeetingMinutes.Api, MeetingMinutes.Web (Blazor Interactive Server), MeetingMinutes.Shared  
 **Review gate:** ALL code must be reviewed and approved by Miller before any task is marked done.
 
 ## Learnings
@@ -63,6 +63,87 @@ Implemented all 6 REST API endpoints in Program.cs:
 **Build Status:** All API code compiles successfully with no C# errors
 
 **Testing Needed:** Manual testing of all endpoints with authentication, file upload validation, and edge cases
+
+### 2025-01-29: Blazor WASM → Interactive Server Migration Architecture (server-migration-arch)
+**Status:** 📋 Architectural guidance complete — awaiting implementation by Alex + Amos
+
+**Decision Summary:**
+- **Migrating** MeetingMinutes.Web from Blazor WebAssembly to Blazor Interactive Server render mode
+- **Reason:** Eliminate WASM complexity, enable server-side rendering, simplify deployment
+- **Impact:** Web becomes standalone ASP.NET Core app, API no longer hosts static files
+
+**Key Architectural Changes:**
+1. **Web Project SDK:** `Microsoft.NET.Sdk.BlazorWebAssembly` → `Microsoft.NET.Sdk.Web`
+2. **Packages:** Remove all WASM packages, add auth packages (Microsoft.Identity.Web, Google, MicrosoftAccount)
+3. **Program.cs:** Rewrite from `WebAssemblyHostBuilder` → `WebApplication.CreateBuilder` with Razor Components + Interactive Server
+4. **Auth Migration:** Entire OAuth + cookie setup moved from API → Web project
+5. **HttpClient:** Configured via Aspire service discovery (`services:api:https:0`) for server-to-server calls
+6. **Render Mode:** Global `@rendermode="InteractiveServer"` in App.razor
+7. **API Cleanup:** Remove `UseBlazorFrameworkFiles()`, `MapFallbackToFile()`, all auth code
+8. **AppHost:** Already configured correctly — no changes needed
+
+**HttpClient Configuration:**
+- Web uses typed HttpClient with Aspire service discovery
+- BaseAddress: `builder.Configuration["services:api:https:0"]` (injected by Aspire)
+- Resilience: `AddStandardResilienceHandler()` for retries + circuit breaker
+- Backwards compatibility: Default `HttpClient` injected as `ApiClient` for existing `@inject HttpClient` usage
+
+**Auth Flow Changes:**
+- **Before:** API managed OAuth, Web (WASM) called `/api/auth/user` to check auth state
+- **After:** Web manages OAuth directly, endpoints moved to `/auth/*` (no `/api` prefix)
+- BFF pattern maintained: cookies issued by Web server, SignalR connection authenticated
+
+**Security Decisions:**
+- API `.RequireAuthorization()` removed — Web → API is now internal server-to-server call
+- CORS kept for now (defensive), may remove later
+- OAuth redirect URIs must be updated in Azure/Google consoles to point to Web URL
+
+**Migration Risks:**
+- **High:** Auth flow breakage if OAuth redirect URIs not updated
+- **Medium:** API authorization holes if `.RequireAuthorization()` kept but auth removed
+- **Low:** Render mode issues if `@rendermode` not applied globally
+
+**Deliverables:**
+- ✅ Architectural decision doc: `.squad/decisions/inbox/holden-server-migration-arch.md`
+- ✅ Quick reference guide: `.squad/holden-migration-guide.md`
+- 📋 Awaiting implementation by Alex (Web changes) + Amos (API cleanup, testing)
+
+**Key Learnings:**
+- Interactive Server eliminates WASM download time and complexity
+- Aspire service discovery automatically injects API URLs into configuration
+- Auth must live in Web project for Interactive Server (can't split OAuth across processes)
+- AppHost already prepared for Interactive Server — good forward planning!
+
+**Next Steps:**
+1. Alex implements Web project transformation (SDK, Program.cs, App.razor, Routes.razor)
+2. Amos cleans up API (remove WASM hosting, auth code)
+3. Both test end-to-end (build, run, login, upload, jobs)
+4. Miller reviews before marking complete
+
+
+
+### 2026-03-31: Blazor WASM → Interactive Server Migration Complete ✅
+
+**Status:** ✅ APPROVED WITH NOTES — migration approved for merge
+
+**Session Summary:**
+Orchestrated multi-agent implementation of Blazor WebAssembly → Interactive Server migration. Architecture analysis provided in `.squad/decisions/inbox/holden-server-migration-arch.md` (now merged to decisions.md).
+
+**Key Deliverable:**
+- Comprehensive 721-line architectural decision document with implementation plan, risk assessment, rollback strategy
+- Identified all breaking changes and configuration updates needed
+- Successfully guided Alex + Amos implementation with 0 errors/warnings
+
+**Architecture Approved:**
+- Web: Interactive Server with `AddRazorComponents().AddInteractiveServerComponents()`
+- Auth: Relocated from API → Web project; `ServerAuthenticationStateProvider` uses `HttpContext.User`
+- HttpClient: Server-to-server with Aspire service discovery (`services:api:https:0`)
+- AppHost: `.WithReference(api)` + `.WaitFor(api)` enables orchestration
+- API: Cleaned up — WASM hosting code and auth removed
+
+**Orchestration Log:** `.squad/orchestration-log/2026-04-01T17-12-55Z-holden-server-migration-arch.md`
+
+---
 
 ### 2025-01-27: API Auth Endpoints (api-auth)
 **Status:** ✅ Complete (pending Miller review)

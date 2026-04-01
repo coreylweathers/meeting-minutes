@@ -229,3 +229,98 @@
 **Navigation:** Upload link already exists in `Layout/NavMenu.razor`
 
 **Status:** Complete, ready for Miller's review
+
+## 2026-03-31 - Blazor WebAssembly to Interactive Server Migration
+
+**Task:** Migrate `MeetingMinutes.Web` from Blazor WebAssembly to Interactive Server render mode
+
+**Status:** ✅ APPROVED WITH NOTES — migration approved for merge
+
+**Implementation:**
+
+**What Interactive Server means:**
+- Components run on the server; SignalR carries UI updates to the browser
+- No more browser-based HttpClient fetches — all HTTP calls are server-to-server
+- Better security: cookies stay on server, no tokens exposed to browser
+- Simpler auth: HttpContext.User is available directly on server
+
+**Files changed (9 modified, 2 deleted):**
+
+1. **`src/MeetingMinutes.Web/MeetingMinutes.Web.csproj`**
+   - Changed SDK from `Microsoft.NET.Sdk.BlazorWebAssembly` → `Microsoft.NET.Sdk.Web`
+   - Removed: `Microsoft.AspNetCore.Components.WebAssembly` package
+   - Removed: `Microsoft.AspNetCore.Components.WebAssembly.DevServer` package
+   - Removed: `Microsoft.AspNetCore.Components.Authorization` (included in framework for .NET 10)
+   - Added: `ProjectReference` to `MeetingMinutes.ServiceDefaults` for Aspire integration
+
+2. **`src/MeetingMinutes.Web/Program.cs`** (complete rewrite)
+   - Replaced `WebAssemblyHostBuilder` with `WebApplication.CreateBuilder`
+   - Added `AddRazorComponents().AddInteractiveServerComponents()`
+   - Configured HttpClient factory for API calls via Aspire service discovery
+   - Added `AddHttpContextAccessor()` for auth state provider
+   - Replaced WASM auth with `ServerAuthenticationStateProvider`
+   - Added middleware: `UseStaticFiles()`, `UseAntiforgery()`, `UseHttpsRedirection()`
+   - Mapped Razor components with `MapRazorComponents<App>().AddInteractiveServerRenderMode()`
+
+3. **`src/MeetingMinutes.Web/App.razor`**
+   - Converted from `<Router>` component to full HTML document root
+   - Added `<!DOCTYPE html>` structure with `<head>` and `<body>`
+   - Moved Bootstrap CSS link from index.html
+   - Added `<HeadOutlet @rendermode="InteractiveServer" />`
+   - Added `<Routes @rendermode="InteractiveServer" />` component reference
+   - Changed Blazor script from `blazor.webassembly.js` → `blazor.web.js`
+   - Added `@namespace MeetingMinutes.Web` directive
+
+4. **`src/MeetingMinutes.Web/Components/Routes.razor`** (new file)
+   - Extracted router logic from old App.razor
+   - Contains `<Router>`, `<AuthorizeRouteView>`, and `<NotFound>` logic
+   - Uses `typeof(Program).Assembly` for route discovery
+
+5. **`src/MeetingMinutes.Web/Auth/ServerAuthenticationStateProvider.cs`** (new file)
+   - Replaced `CookieAuthenticationStateProvider` for server-side auth
+   - Reads user from `HttpContext.User` directly (no HTTP call to `/api/auth/user` needed)
+   - Returns `AuthenticationState` based on cookie authentication
+
+6. **`src/MeetingMinutes.Web/_Imports.razor`**
+   - Removed: `@using Microsoft.AspNetCore.Components.WebAssembly.Http` (WASM-specific)
+   - Added: `@using MeetingMinutes.Web.Components`
+   - Added: `@using static Microsoft.AspNetCore.Components.Web.RenderMode`
+
+7. **`src/MeetingMinutes.Web/wwwroot/index.html`** (deleted)
+   - Removed WASM bootstrap HTML file — no longer needed
+   - App.razor now serves as the HTML document root
+
+8. **`src/MeetingMinutes.Api/MeetingMinutes.Api.csproj`**
+   - Removed: `Microsoft.AspNetCore.Components.WebAssembly.Server` package
+   - Removed: `ProjectReference` to `MeetingMinutes.Web` (API no longer hosts WASM)
+
+9. **`src/MeetingMinutes.Api/Program.cs`**
+   - Removed: `app.UseBlazorFrameworkFiles()` (no WASM to serve)
+   - Removed: `app.MapFallbackToFile("index.html")` (no fallback needed)
+   - Kept all auth endpoints (`/api/auth/user`, `/api/auth/login/{provider}`, `/api/auth/logout`) — still used by Web app
+
+**What stayed the same:**
+- All existing pages: Upload, Jobs, JobDetail, Home
+- Auth flow: Microsoft/Google OAuth with BFF cookie pattern
+- `LoginDisplay`, `RedirectToLogin` components work unchanged
+- `CookieAuthenticationStateProvider.cs` remains in codebase but is no longer used (could be deleted)
+
+**Architecture changes:**
+- **Before:** Browser → Blazor WASM in browser → HttpClient fetch → API (with CORS)
+- **After:** Browser ← SignalR → Web Server (Interactive Server) → HttpClient → API
+
+**Benefits:**
+- Simplified auth: no custom `/api/auth/user` HTTP call needed
+- Better security: auth cookies stay on server
+- Server-to-server API calls: no CORS complexity for auth
+- Smaller initial download: no full .NET runtime in browser
+
+**Build status:** ✅ Succeeded (0 errors, 0 warnings)
+
+**Miller's Verdict:** ⚠️ APPROVED WITH NOTES
+- Core migration: ✅ all components correct
+- Non-blocking follow-ups: Delete old CookieAuthenticationStateProvider (Naomi), add integration tests (Bobbie), verify auth middleware (Bobbie)
+
+**Orchestration Log:** `.squad/orchestration-log/2026-04-01T17-12-56Z-alex-server-migration-impl.md`
+
+**Status:** Complete, approved for merge

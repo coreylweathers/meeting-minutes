@@ -78,7 +78,6 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 app.MapDefaultEndpoints();
@@ -317,7 +316,5 @@ auth.MapGet("/logout", async (HttpContext ctx) =>
     await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     return Results.Redirect("/");
 });
-
-app.MapFallbackToFile("index.html");
 
 app.Run();

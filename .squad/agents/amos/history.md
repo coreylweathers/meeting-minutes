@@ -101,3 +101,48 @@
 - Decision documented: `.squad/decisions/inbox/amos-package-updates.md`
 
 ## Learnings
+
+### Blazor Server Integration into Aspire (Completed)
+- Converted MeetingMinutes.Web from Blazor WebAssembly to Blazor Interactive Server (separate ASP.NET Core process)
+- Updated AppHost to register Web as a separate Aspire resource
+  - **AppHost.csproj**: Added `<ProjectReference Include="..\MeetingMinutes.Web\MeetingMinutes.Web.csproj" IsAspireProjectResource="true" />`
+  - **Program.cs**: Registered Web project with `builder.AddProject<Projects.MeetingMinutes_Web>("web")`
+  - Web project references API via `.WithReference(api)` — Aspire injects API base URL into Web configuration
+  - Web waits for API with `.WaitFor(api)` — ensures API is ready before Web starts
+  - Marked Web with `.WithExternalHttpEndpoints()` for external access
+- Build result: **SUCCESS** — all 6 projects compile (Shared, ServiceDefaults, Web, Api, AppHost, and implicit references)
+- Architecture: BFF pattern — Web calls API directly, API never exposed to external clients
+
+### 2026-03-31: Web Project AppHost Integration (Completed)
+
+**Task:** Configure Web as separate Aspire resource in AppHost with service discovery
+
+**Status:** ✅ APPROVED — integration approved for merge
+
+**Changes Made:**
+
+1. **AppHost.csproj**
+   - Added Web ProjectReference with `IsAspireProjectResource="true"` to enable source generator to create `Projects.MeetingMinutes_Web` type
+
+2. **AppHost/Program.cs**
+   - Added Web resource registration:
+     ```csharp
+     var web = builder.AddProject<Projects.MeetingMinutes_Web>("web")
+         .WithReference(api)          // Service discovery: injects API base URL
+         .WaitFor(api)                // Startup ordering: API first, then Web
+         .WithExternalHttpEndpoints();
+     ```
+   - Service discovery behavior: Aspire injects `services__api__http__0` and `services__api__https__0` into Web environment
+   - BFF pattern: Web calls API directly; API not exposed externally; Web doesn't need direct refs to Azure services
+
+**Build Verification:**
+- ✅ All 6 projects compile (0 errors, 0 warnings, 53.48s)
+- ✅ AppHost can reference both API and Web via source-generated types
+
+**Architecture Impact:**
+- Web and API coordinate startup and service discovery in both local (Aspire Dashboard) and cloud (Azure Container Apps) environments
+- `azd up` deploys both containers separately; service discovery handles inter-process communication
+- Web configuration automatically receives API base URL from Aspire
+
+**Orchestration Log:** `.squad/orchestration-log/2026-04-01T17-12-57Z-amos-apphost-web-resource.md`
+

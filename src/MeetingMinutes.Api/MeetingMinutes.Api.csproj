@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Azure.Storage.Blobs" Version="13.2.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.5" />
     <PackageReference Include="Aspire.Azure.Data.Tables" Version="13.2.1" />
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.48.2" />
     <PackageReference Include="Azure.AI.OpenAI" Version="2.2.0-beta.4" />
@@ -19,7 +18,6 @@
   <ItemGroup>
     <ProjectReference Include="..\MeetingMinutes.Shared\MeetingMinutes.Shared.csproj" />
     <ProjectReference Include="..\MeetingMinutes.ServiceDefaults\MeetingMinutes.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\MeetingMinutes.Web\MeetingMinutes.Web.csproj" />
   </ItemGroup>
 
 </Project>
