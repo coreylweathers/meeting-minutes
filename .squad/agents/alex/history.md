@@ -31,6 +31,11 @@
 
 ## Learnings
 
+### 2026-04-01 — README and Charter Updated for Interactive Server Migration
+
+- `README.md` updated: Architecture section now reflects Blazor Interactive Server (not WASM/BFF); Running Locally clarifies three separate Aspire-managed services (Azurite, API, Web); OAuth redirect URI notes now explicitly call out the **Web** port; new `## Testing` section documents all three test suites (unit, bUnit component, Playwright E2E).
+- `.squad/agents/alex/charter.md` updated: removed all references to Blazor WebAssembly, BFF auth pattern, and .NET 9; now reflects Interactive Server, .NET 10, and `ServerAuthenticationStateProvider` (HttpContext-based).
+
 ### 2025 — Scaffold Fix (Miller's Review)
 - `AddMicrosoftIdentityWebApp()` returns `MicrosoftIdentityWebAppAuthenticationBuilder`, NOT `AuthenticationBuilder`. Cannot chain `.AddGoogle()` off it — use `AddMicrosoftAccount` (lightweight OAuth2) instead, which chains cleanly off `AuthenticationBuilder`.
 - `AddMicrosoftAccount` requires the `Microsoft.AspNetCore.Authentication.MicrosoftAccount` NuGet package (v10.0.0 for net10.0). Not included transitively via `Microsoft.Identity.Web`.

@@ -34,7 +34,7 @@ AI-powered meeting transcription and summarization.
 #### Microsoft OAuth (`Authentication:Microsoft:ClientId` / `ClientSecret`)
 1. Go to [Azure Portal](https://portal.azure.com) → **Microsoft Entra ID** → **App registrations** → **New registration**
 2. Name: `Meeting Minutes (local)`, Supported account types: **Accounts in any organizational directory and personal Microsoft accounts**
-3. Redirect URI: `Web` → `https://localhost:<port>/signin-microsoft` (check your Aspire dashboard for the port)
+3. Redirect URI: `Web` → `https://localhost:<port>/signin-microsoft` (check your Aspire dashboard for the **web** resource port — the Web UI and API run as separate processes)
 4. After registration, copy the **Application (client) ID**
 5. Go to **Certificates & secrets** → **New client secret** → copy the value immediately
 6. Set the secrets:
@@ -47,7 +47,7 @@ AI-powered meeting transcription and summarization.
 1. Go to [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services** → **Credentials**
 2. Click **Create Credentials** → **OAuth client ID**
 3. Application type: **Web application**, Name: `Meeting Minutes (local)`
-4. Authorized redirect URIs: `https://localhost:<port>/signin-google`
+4. Authorized redirect URIs: `https://localhost:<port>/signin-google` (use the **web** resource port from the Aspire dashboard, not the API port)
 5. Copy the **Client ID** and **Client Secret**
 6. Set the secrets:
    ```bash
@@ -56,16 +56,29 @@ AI-powered meeting transcription and summarization.
    ```
    > 💡 You may need to configure the **OAuth consent screen** first (External, test mode is fine for dev).
 
-> **Finding your port:** Run `dotnet run` from `src/MeetingMinutes.AppHost` — the Aspire dashboard URL is printed to the console. The API port is shown there.
+> **Finding your port:** Run `dotnet run` from `src/MeetingMinutes.AppHost` — the Aspire dashboard URL is printed to the console. Both the **web** and **api** resource ports are shown there. OAuth redirect URIs should use the **web** port.
 
 ### Running Locally
 
-1. After setting user secrets for the API project, run with Aspire:
+1. After setting user secrets for the API and Web projects, run with Aspire:
    ```bash
    cd src/MeetingMinutes.AppHost
    dotnet run
    ```
-   This starts Azurite (local Azure Storage) via Docker and the API (which serves the Blazor UI).
+   This starts three services: **Azurite** (local Azure Storage via Docker), the **API** (`MeetingMinutes.Api`), and the **Web UI** (`MeetingMinutes.Web` — Blazor Interactive Server). Each gets its own port visible in the Aspire dashboard. The Web UI communicates with the API via server-to-server calls using Aspire service discovery.
+
+## Testing
+
+Three test suites are included:
+
+- **Unit tests** (`tests/MeetingMinutes.Tests/`) — xUnit service-layer tests. Run with `dotnet test tests/MeetingMinutes.Tests/`.
+- **Component tests** (`tests/MeetingMinutes.Web.Tests/`) — bUnit Blazor component tests. Run with `dotnet test tests/MeetingMinutes.Web.Tests/`.
+- **E2E tests** (`tests/MeetingMinutes.E2E/`) — Playwright end-to-end tests. Requires a running app. See `tests/MeetingMinutes.E2E/README.md` for setup.
+
+Run all unit and component tests:
+```bash
+dotnet test
+```
 
 ## Deploy to Azure
 
@@ -83,8 +96,8 @@ The deployment uses Azure Developer CLI (azd) with .NET Aspire integration. The 
 Container Apps will scale to zero replicas when idle, minimizing costs.
 
 ## Architecture
-- **Frontend**: Blazor WebAssembly (served by API, BFF pattern)
-- **Backend**: ASP.NET Core Minimal API + BackgroundService worker
+- **Frontend**: Blazor Interactive Server (standalone ASP.NET Core process, SignalR-based)
+- **Backend**: ASP.NET Core Minimal API + BackgroundService worker (separate process from the Web app)
 - **Storage**: Azure Blob Storage (videos, transcripts, summaries) + Table Storage (job metadata)
 - **AI**: Azure AI Speech (transcription) + Azure OpenAI GPT-4o Mini (summarization)
-- **Orchestration**: .NET Aspire (local) + Azure Container Apps (production, scale-to-zero)
+- **Orchestration**: .NET Aspire manages both Web and API as separate resources (local dashboard + Azure Container Apps in production, scale-to-zero)

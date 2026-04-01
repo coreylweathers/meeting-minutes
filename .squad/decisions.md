@@ -216,6 +216,41 @@
 
 ---
 
+### Decision 7: Documentation Update — README & Charter for Interactive Server
+
+**Author:** Alex (Frontend Developer)  
+**Status:** ✅ APPROVED & COMPLETE  
+**Date:** 2026-04-01
+
+**Summary:** Updated README.md and .squad/agents/alex/charter.md to reflect Blazor Interactive Server architecture following WASM migration completion.
+
+**Changes Made:**
+
+**README.md Updates:**
+- **Architecture Section:** Frontend description changed from "Blazor WebAssembly (served by API, BFF pattern)" to "Blazor Interactive Server (standalone ASP.NET Core process, SignalR-based)"
+- **Running Locally Section:** Removed incorrect statement that API serves Blazor UI; clarified that `dotnet run` from AppHost starts 3 services (Azurite, API, Web) orchestrated by Aspire
+- **OAuth Redirect URIs Section:** Clarified `<port>` refers to Web app port (not API)
+- **Testing Section (NEW):** Added comprehensive test suite documentation (unit, component, E2E)
+
+**Charter Updates:**
+- Removed Blazor WebAssembly and BFF pattern references
+- Updated to reflect Interactive Server architecture
+- Added ServerAuthenticationStateProvider documentation
+- Updated tech stack (ASP.NET Core Interactive Server, .NET 10)
+
+**Files Modified:** 2 (README.md, .squad/agents/alex/charter.md)  
+**Related Files:** 1 (.squad/agents/alex/history.md appended)
+
+**Rationale:**
+Documentation now accurately describes the deployed architecture. Web and API are separate processes with independent ports; Aspire handles orchestration and service discovery. Testing section guides developers on running comprehensive test suites.
+
+**Impact:**
+- Developers can correctly understand architecture from README
+- New team members have accurate guidance on local setup
+- Charter reflects current frontend responsibilities and tech stack
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus
