@@ -1,7 +1,8 @@
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using MeetingMinutes.Api.Services;
+using MeetingMinutes.Web.Services;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using FluentAssertions;
@@ -15,6 +16,7 @@ public class BlobStorageServiceTests
     private readonly Mock<BlobContainerClient> _mockVideosContainer;
     private readonly Mock<BlobContainerClient> _mockTranscriptsContainer;
     private readonly Mock<BlobClient> _mockBlobClient;
+    private readonly Mock<ILogger<BlobStorageService>> _mockLogger;
     private readonly BlobStorageService _service;
 
     public BlobStorageServiceTests()
@@ -23,6 +25,7 @@ public class BlobStorageServiceTests
         _mockVideosContainer = new Mock<BlobContainerClient>();
         _mockTranscriptsContainer = new Mock<BlobContainerClient>();
         _mockBlobClient = new Mock<BlobClient>();
+        _mockLogger = new Mock<ILogger<BlobStorageService>>();
 
         _mockBlobServiceClient
             .Setup(x => x.GetBlobContainerClient("videos"))
@@ -32,7 +35,7 @@ public class BlobStorageServiceTests
             .Setup(x => x.GetBlobContainerClient("transcripts"))
             .Returns(_mockTranscriptsContainer.Object);
 
-        _service = new BlobStorageService(_mockBlobServiceClient.Object);
+        _service = new BlobStorageService(_mockBlobServiceClient.Object, _mockLogger.Object);
     }
 
     [Fact]

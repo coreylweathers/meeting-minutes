@@ -1,7 +1,7 @@
 using FFMpegCore;
 using FFMpegCore.Enums;
 
-namespace MeetingMinutes.Api.Services;
+namespace MeetingMinutes.Web.Services;
 
 public sealed class FFmpegHelper(ILogger<FFmpegHelper> logger) : IFFmpegHelper
 {

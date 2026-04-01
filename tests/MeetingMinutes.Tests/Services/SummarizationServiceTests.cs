@@ -1,6 +1,7 @@
 using OpenAI;
-using MeetingMinutes.Api.Services;
+using MeetingMinutes.Web.Services;
 using MeetingMinutes.Shared.DTOs;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using FluentAssertions;
@@ -13,11 +14,13 @@ public class SummarizationServiceTests
 {
     private readonly Mock<OpenAIClient> _mockOpenAIClient;
     private readonly Mock<ChatClient> _mockChatClient;
+    private readonly Mock<ILogger<SummarizationService>> _mockLogger;
 
     public SummarizationServiceTests()
     {
         _mockOpenAIClient = new Mock<OpenAIClient>();
         _mockChatClient = new Mock<ChatClient>();
+        _mockLogger = new Mock<ILogger<SummarizationService>>();
 
         _mockOpenAIClient
             .Setup(x => x.GetChatClient("gpt-4o-mini"))
@@ -28,7 +31,7 @@ public class SummarizationServiceTests
     public void Constructor_ShouldInitialize_WithValidClient()
     {
         // Act
-        var service = new SummarizationService(_mockOpenAIClient.Object);
+        var service = new SummarizationService(_mockOpenAIClient.Object, _mockLogger.Object);
 
         // Assert
         service.Should().NotBeNull();
@@ -51,7 +54,7 @@ public class SummarizationServiceTests
         
         // Arrange
         var transcript = "Meeting started at 2pm. Attendees: Alice, Bob. Discussed project timeline. Action: Bob will send proposal by Friday.";
-        var service = new SummarizationService(_mockOpenAIClient.Object);
+        var service = new SummarizationService(_mockOpenAIClient.Object, _mockLogger.Object);
 
         // Act
         var result = await service.SummarizeAsync(transcript, CancellationToken.None);

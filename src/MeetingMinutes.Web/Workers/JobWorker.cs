@@ -1,15 +1,24 @@
 using Azure.Storage.Blobs;
-using MeetingMinutes.Api.Services;
+using MeetingMinutes.Web.Services;
 using MeetingMinutes.Shared.Enums;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 
-namespace MeetingMinutes.Api.Workers;
+namespace MeetingMinutes.Web.Workers;
 
 public class JobWorker : BackgroundService
 {
+    private static readonly ActivitySource ActivitySource = new("MeetingMinutes.JobWorker");
+
     private readonly ILogger<JobWorker> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly BlobServiceClient _blobServiceClient;
+
+    private readonly Meter _meter = new("MeetingMinutes.JobWorker");
+    private readonly Counter<long> _jobsStarted;
+    private readonly Counter<long> _jobsCompleted;
+    private readonly Counter<long> _jobsFailed;
 
     public JobWorker(
         ILogger<JobWorker> logger,
@@ -19,6 +28,10 @@ public class JobWorker : BackgroundService
         _logger = logger;
         _scopeFactory = scopeFactory;
         _blobServiceClient = blobServiceClient;
+
+        _jobsStarted = _meter.CreateCounter<long>("jobs_started", description: "Number of jobs started");
+        _jobsCompleted = _meter.CreateCounter<long>("jobs_completed", description: "Number of jobs completed");
+        _jobsFailed = _meter.CreateCounter<long>("jobs_failed", description: "Number of jobs failed");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -70,20 +83,27 @@ public class JobWorker : BackgroundService
         ISummarizationService summarizer,
         CancellationToken ct)
     {
+        using var activity = ActivitySource.StartActivity("ProcessJob");
+        activity?.SetTag("job.id", jobId);
+
+        var sw = Stopwatch.StartNew();
         string? videoTempPath = null;
         string? audioTempPath = null;
+
+        _jobsStarted.Add(1);
 
         try
         {
             _logger.LogInformation("Processing job {JobId}", jobId);
 
-            // Get job details
             var job = await jobService.GetJobAsync(jobId, ct);
             if (job == null)
             {
                 _logger.LogWarning("Job {JobId} not found", jobId);
                 return;
             }
+
+            activity?.SetTag("job.filename", job.FileName);
 
             if (string.IsNullOrEmpty(job.BlobUri))
             {
@@ -110,10 +130,9 @@ public class JobWorker : BackgroundService
             // 5. Transcribe audio via SpeechTranscriptionService
             var transcript = await speech.TranscribeAsync(audioTempPath, ct);
 
-            // 6. Store transcript in blob storage (container: "transcripts", blob: "{jobId}.txt")
+            // 6. Store transcript in blob storage
             var transcriptBlobUri = await blobService.UploadTextAsync(transcript, $"{jobId}.txt", ct);
-            
-            // Update job with transcript URI
+
             job.TranscriptBlobUri = transcriptBlobUri;
             await jobService.UpdateJobAsync(job, ct);
 
@@ -124,51 +143,41 @@ public class JobWorker : BackgroundService
             // 8. Summarize transcript via SummarizationService
             var summaryDto = await summarizer.SummarizeAsync(transcript, ct);
 
-            // 9. Serialize SummaryDto to JSON, store in blob ("summaries", "{jobId}.json")
-            var summaryJson = JsonSerializer.Serialize(summaryDto, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            // 9. Serialize SummaryDto to JSON, store in blob
+            var summaryJson = JsonSerializer.Serialize(summaryDto, new JsonSerializerOptions { WriteIndented = true });
             var summaryBlobUri = await UploadToContainerAsync("summaries", $"{jobId}.json", summaryJson, ct);
 
-            // Update job with summary URI
             job.SummaryBlobUri = summaryBlobUri;
             await jobService.UpdateJobAsync(job, ct);
 
             // 10. Update status → Completed
-            _logger.LogInformation("Job {JobId}: Completed successfully", jobId);
             await jobService.UpdateStatusAsync(jobId, JobStatus.Completed, ct: ct);
+
+            sw.Stop();
+            activity?.SetTag("job.status", "completed");
+            _jobsCompleted.Add(1);
+            _logger.LogInformation("Job {JobId} completed successfully in {ElapsedMs}ms", jobId, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Job {JobId} failed", jobId);
+            sw.Stop();
+            activity?.SetTag("job.status", "failed");
+            _jobsFailed.Add(1);
+            _logger.LogError(ex, "Job {JobId} failed after {ElapsedMs}ms", jobId, sw.ElapsedMilliseconds);
             await jobService.UpdateStatusAsync(jobId, JobStatus.Failed, ex.Message, ct);
         }
         finally
         {
-            // Delete temp files
             if (videoTempPath != null && File.Exists(videoTempPath))
             {
-                try
-                {
-                    File.Delete(videoTempPath);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to delete temp video file: {Path}", videoTempPath);
-                }
+                try { File.Delete(videoTempPath); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Failed to delete temp video file: {Path}", videoTempPath); }
             }
 
             if (audioTempPath != null && File.Exists(audioTempPath))
             {
-                try
-                {
-                    File.Delete(audioTempPath);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to delete temp audio file: {Path}", audioTempPath);
-                }
+                try { File.Delete(audioTempPath); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Failed to delete temp audio file: {Path}", audioTempPath); }
             }
         }
     }

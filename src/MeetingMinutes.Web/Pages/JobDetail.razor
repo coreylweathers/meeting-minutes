@@ -1,9 +1,13 @@
 @page "/jobs/{Id}"
 @attribute [Authorize]
-@inject HttpClient Http
+@inject IJobMetadataService JobMetadata
+@inject IBlobStorageService BlobStorage
+@inject ILogger<JobDetail> Logger
 @inject IJSRuntime JS
 @using MeetingMinutes.Shared.DTOs
+@using MeetingMinutes.Shared.Entities
 @using MeetingMinutes.Shared.Enums
+@using MeetingMinutes.Web.Services
 @using System.Timers
 @implements IDisposable
 
@@ -250,27 +254,21 @@
         try
         {
             isLoading = true;
-            job = await Http.GetFromJsonAsync<JobDto>($"/api/jobs/{Id}");
-            
+            var entity = await JobMetadata.GetJobAsync(Id);
+            job = entity is null ? null : MapToJobDto(entity);
             if (job?.Status == JobStatus.Completed)
             {
                 StopPolling();
                 await LoadTranscript();
                 await LoadSummary();
             }
-            else if (IsProcessing())
-            {
-                StartPolling();
-            }
+            else if (IsProcessing()) StartPolling();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading job: {ex.Message}");
+            Logger.LogError(ex, "Error loading job {JobId}", Id);
         }
-        finally
-        {
-            isLoading = false;
-        }
+        finally { isLoading = false; }
     }
 
     private async Task LoadTranscript()
@@ -278,16 +276,12 @@
         try
         {
             transcriptLoading = true;
-            transcript = await Http.GetStringAsync($"/api/jobs/{Id}/transcript");
+            var entity = await JobMetadata.GetJobAsync(Id);
+            if (entity?.TranscriptBlobUri is not null)
+                transcript = await BlobStorage.DownloadTextAsync(entity.TranscriptBlobUri);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading transcript: {ex.Message}");
-        }
-        finally
-        {
-            transcriptLoading = false;
-        }
+        catch (Exception ex) { Logger.LogError(ex, "Error loading transcript for job {JobId}", Id); }
+        finally { transcriptLoading = false; }
     }
 
     private async Task LoadSummary()
@@ -295,16 +289,17 @@
         try
         {
             summaryLoading = true;
-            summary = await Http.GetFromJsonAsync<SummaryDto>($"/api/jobs/{Id}/summary");
+            var entity = await JobMetadata.GetJobAsync(Id);
+            if (entity?.SummaryBlobUri is not null)
+            {
+                var json = await BlobStorage.DownloadTextAsync(entity.SummaryBlobUri);
+                if (json is not null)
+                    summary = System.Text.Json.JsonSerializer.Deserialize<SummaryDto>(json,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading summary: {ex.Message}");
-        }
-        finally
-        {
-            summaryLoading = false;
-        }
+        catch (Exception ex) { Logger.LogError(ex, "Error loading summary for job {JobId}", Id); }
+        finally { summaryLoading = false; }
     }
 
     private void StartPolling()
@@ -329,28 +324,28 @@
     {
         try
         {
-            var updatedJob = await Http.GetFromJsonAsync<JobDto>($"/api/jobs/{Id}");
-            if (updatedJob != null)
+            var entity = await JobMetadata.GetJobAsync(Id);
+            if (entity != null)
             {
-                job = updatedJob;
-                
+                job = MapToJobDto(entity);
+
                 if (job.Status == JobStatus.Completed || job.Status == JobStatus.Failed)
                 {
                     StopPolling();
-                    
+
                     if (job.Status == JobStatus.Completed)
                     {
                         await LoadTranscript();
                         await LoadSummary();
                     }
                 }
-                
+
                 await InvokeAsync(StateHasChanged);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error polling job: {ex.Message}");
+            Logger.LogError(ex, "Error polling job {JobId}", Id);
         }
     }
 
@@ -409,37 +404,36 @@
         try
         {
             isSaving = true;
-            
-            var request = new UpdateSummaryRequest(
-                Title: editTitle,
-                Attendees: editAttendees.Split(',').Select(a => a.Trim()).Where(a => !string.IsNullOrWhiteSpace(a)).ToArray(),
-                KeyPoints: editKeyPoints.Split('\n').Select(k => k.Trim()).Where(k => !string.IsNullOrWhiteSpace(k)).ToArray(),
-                ActionItems: editActionItems.Split('\n').Select(a => a.Trim()).Where(a => !string.IsNullOrWhiteSpace(a)).ToArray(),
-                Decisions: editDecisions.Split('\n').Select(d => d.Trim()).Where(d => !string.IsNullOrWhiteSpace(d)).ToArray(),
-                DurationMinutes: editDurationMinutes
+            var entity = await JobMetadata.GetJobAsync(Id);
+            if (entity is null) return;
+
+            var updated = new SummaryDto(
+                editTitle,
+                editAttendees.Split(',').Select(a => a.Trim()).Where(a => !string.IsNullOrWhiteSpace(a)).ToArray(),
+                editKeyPoints.Split('\n').Select(k => k.Trim()).Where(k => !string.IsNullOrWhiteSpace(k)).ToArray(),
+                editActionItems.Split('\n').Select(a => a.Trim()).Where(a => !string.IsNullOrWhiteSpace(a)).ToArray(),
+                editDecisions.Split('\n').Select(d => d.Trim()).Where(d => !string.IsNullOrWhiteSpace(d)).ToArray(),
+                editDurationMinutes
             );
 
-            var response = await Http.PutAsJsonAsync($"/api/jobs/{Id}/summary", request);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadSummary();
-                isEditMode = false;
-            }
-            else
-            {
-                Console.WriteLine($"Error saving summary: {response.StatusCode}");
-            }
+            var json = System.Text.Json.JsonSerializer.Serialize(updated);
+
+            if (entity.SummaryBlobUri is not null)
+                await BlobStorage.UploadTextAsync(json, $"{Id}.json");
+
+            await LoadSummary();
+            isEditMode = false;
+            Logger.LogInformation("Summary updated for job {JobId}", Id);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error saving summary: {ex.Message}");
-        }
-        finally
-        {
-            isSaving = false;
-        }
+        catch (Exception ex) { Logger.LogError(ex, "Error saving summary for job {JobId}", Id); }
+        finally { isSaving = false; }
     }
+
+    private static JobDto MapToJobDto(ProcessingJob job) => new(
+        job.JobId, job.FileName, Enum.Parse<JobStatus>(job.Status),
+        job.BlobUri, job.TranscriptBlobUri, job.SummaryBlobUri,
+        job.ErrorMessage, job.CreatedAt, job.UpdatedAt
+    );
 
     public void Dispose()
     {

@@ -2,7 +2,7 @@ using System.Text;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
 
-namespace MeetingMinutes.Api.Services;
+namespace MeetingMinutes.Web.Services;
 
 public class SpeechTranscriptionService : ISpeechTranscriptionService
 {

@@ -1,8 +1,9 @@
 using Azure;
 using Azure.Data.Tables;
-using MeetingMinutes.Api.Services;
+using MeetingMinutes.Web.Services;
 using MeetingMinutes.Shared.Entities;
 using MeetingMinutes.Shared.Enums;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using FluentAssertions;
@@ -13,18 +14,20 @@ public class JobMetadataServiceTests
 {
     private readonly Mock<TableServiceClient> _mockTableServiceClient;
     private readonly Mock<TableClient> _mockTableClient;
+    private readonly Mock<ILogger<JobMetadataService>> _mockLogger;
     private readonly JobMetadataService _service;
 
     public JobMetadataServiceTests()
     {
         _mockTableServiceClient = new Mock<TableServiceClient>();
         _mockTableClient = new Mock<TableClient>();
+        _mockLogger = new Mock<ILogger<JobMetadataService>>();
         
         _mockTableServiceClient
             .Setup(x => x.GetTableClient(It.IsAny<string>()))
             .Returns(_mockTableClient.Object);
 
-        _service = new JobMetadataService(_mockTableServiceClient.Object);
+        _service = new JobMetadataService(_mockTableServiceClient.Object, _mockLogger.Object);
     }
 
     [Fact]

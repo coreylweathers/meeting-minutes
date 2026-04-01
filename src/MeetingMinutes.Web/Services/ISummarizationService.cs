@@ -1,6 +1,6 @@
 using MeetingMinutes.Shared.DTOs;
 
-namespace MeetingMinutes.Api.Services;
+namespace MeetingMinutes.Web.Services;
 
 public interface ISummarizationService
 {

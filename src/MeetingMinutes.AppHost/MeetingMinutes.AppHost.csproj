@@ -1,9 +1,10 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.2.1">
+﻿<Project Sdk="Aspire.AppHost.Sdk/13.2.1">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <NoWarn>$(NoWarn);NU1902</NoWarn>
+    <UserSecretsId>9781da5b-1fa3-44d1-bc8b-312676fa149f</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,7 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MeetingMinutes.Api\MeetingMinutes.Api.csproj" />
     <ProjectReference Include="..\MeetingMinutes.Web\MeetingMinutes.Web.csproj" IsAspireProjectResource="true" />
   </ItemGroup>
 

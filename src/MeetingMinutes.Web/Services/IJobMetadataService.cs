@@ -1,7 +1,7 @@
 using MeetingMinutes.Shared.Entities;
 using MeetingMinutes.Shared.Enums;
 
-namespace MeetingMinutes.Api.Services;
+namespace MeetingMinutes.Web.Services;
 
 public interface IJobMetadataService
 {

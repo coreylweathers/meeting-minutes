@@ -13,7 +13,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\MeetingMinutes.Api\MeetingMinutes.Api.csproj" />
     <ProjectReference Include="..\..\src\MeetingMinutes.Web\MeetingMinutes.Web.csproj" />
   </ItemGroup>
 </Project>

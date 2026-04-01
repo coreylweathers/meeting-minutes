@@ -3,7 +3,7 @@ using Azure.Data.Tables;
 using MeetingMinutes.Shared.Entities;
 using MeetingMinutes.Shared.Enums;
 
-namespace MeetingMinutes.Api.Services;
+namespace MeetingMinutes.Web.Services;
 
 public class JobMetadataService : IJobMetadataService
 {
@@ -11,11 +11,13 @@ public class JobMetadataService : IJobMetadataService
     private const string PartitionKey = "jobs";
 
     private readonly TableClient _tableClient;
+    private readonly ILogger<JobMetadataService> _logger;
     private bool _tableInitialized;
 
-    public JobMetadataService(TableServiceClient tableServiceClient)
+    public JobMetadataService(TableServiceClient tableServiceClient, ILogger<JobMetadataService> logger)
     {
         _tableClient = tableServiceClient.GetTableClient(TableName);
+        _logger = logger;
     }
 
     private async Task EnsureTableExistsAsync(CancellationToken ct)
@@ -44,6 +46,7 @@ public class JobMetadataService : IJobMetadataService
         };
 
         await _tableClient.UpsertEntityAsync(job, TableUpdateMode.Replace, ct);
+        _logger.LogInformation("Job {JobId} created for file {FileName}", jobId, fileName);
         return job;
     }
 
@@ -93,6 +96,7 @@ public class JobMetadataService : IJobMetadataService
         job.Status = status.ToString();
         job.ErrorMessage = errorMessage;
 
+        _logger.LogInformation("Job {JobId} status updated to {Status}", jobId, status);
         await UpdateJobAsync(job, ct);
     }
 }

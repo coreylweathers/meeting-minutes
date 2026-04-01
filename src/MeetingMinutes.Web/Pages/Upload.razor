@@ -1,7 +1,12 @@
 @page "/upload"
 @attribute [Authorize]
-@inject HttpClient Http
+@inject IBlobStorageService BlobStorage
+@inject IJobMetadataService JobMetadata
+@inject ILogger<Upload> Logger
 @inject NavigationManager Navigation
+@using MeetingMinutes.Web.Services
+@using MeetingMinutes.Shared.Entities
+@using MeetingMinutes.Shared.Enums
 
 <PageTitle>Upload - Meeting Minutes</PageTitle>
 
@@ -104,55 +109,45 @@
     private async Task HandleSubmit()
     {
         validationError = null;
-
-        if (selectedFile == null)
-        {
-            validationError = "Please select a video file";
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(uploadModel.Title))
-        {
-            validationError = "Please enter a title";
-            return;
-        }
+        if (selectedFile == null) { validationError = "Please select a video file"; return; }
+        if (string.IsNullOrWhiteSpace(uploadModel.Title)) { validationError = "Please enter a title"; return; }
 
         uploadState = UploadState.Uploading;
         errorMessage = null;
 
         try
         {
-            var content = new MultipartFormDataContent();
-            content.Add(new StringContent(uploadModel.Title), "title");
+            var jobId = Guid.NewGuid().ToString();
+            var ext = Path.GetExtension(selectedFile.Name);
+            var blobName = $"{jobId}{ext}";
 
-            var fileStream = selectedFile.OpenReadStream(maxAllowedSize: 1024 * 1024 * 500); // 500 MB max
-            var streamContent = new StreamContent(fileStream);
-            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(selectedFile.ContentType);
-            content.Add(streamContent, "file", selectedFile.Name);
+            Logger.LogInformation("Uploading video {FileName} ({Size} bytes) as job {JobId}",
+                selectedFile.Name, selectedFile.Size, jobId);
 
-            var response = await Http.PostAsync("/api/jobs", content);
+            string blobUri;
+            using (var stream = selectedFile.OpenReadStream(maxAllowedSize: 1024 * 1024 * 500))
+                blobUri = await BlobStorage.UploadVideoAsync(stream, blobName);
 
-            if (response.IsSuccessStatusCode)
+            var job = new ProcessingJob
             {
-                var jobDto = await response.Content.ReadFromJsonAsync<MeetingMinutes.Shared.DTOs.JobDto>();
-                if (jobDto != null)
-                {
-                    createdJobId = jobDto.JobId;
-                    uploadState = UploadState.Success;
-                }
-                else
-                {
-                    throw new Exception("Failed to parse server response");
-                }
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Upload failed: {response.StatusCode}. {errorContent}");
-            }
+                PartitionKey = "jobs",
+                RowKey = jobId,
+                JobId = jobId,
+                FileName = selectedFile.Name,
+                Status = JobStatus.Pending.ToString(),
+                BlobUri = blobUri,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            await JobMetadata.UpdateJobAsync(job);
+
+            Logger.LogInformation("Job {JobId} created successfully", jobId);
+            createdJobId = jobId;
+            uploadState = UploadState.Success;
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Upload failed for file {FileName}", selectedFile?.Name);
             uploadState = UploadState.Error;
             errorMessage = ex.Message;
         }

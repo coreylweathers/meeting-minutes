@@ -1,4 +1,4 @@
-using MeetingMinutes.Api.Services;
+using MeetingMinutes.Web.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;

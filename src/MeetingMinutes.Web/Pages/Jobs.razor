@@ -1,10 +1,12 @@
 @page "/jobs"
 @attribute [Authorize]
 @using MeetingMinutes.Shared.DTOs
+@using MeetingMinutes.Shared.Entities
 @using MeetingMinutes.Shared.Enums
-@using System.Net.Http.Json
-@inject HttpClient Http
+@inject IJobMetadataService JobMetadata
+@inject ILogger<Jobs> Logger
 @inject NavigationManager Navigation
+@using MeetingMinutes.Web.Services
 @implements IDisposable
 
 <PageTitle>Jobs - Meeting Minutes</PageTitle>
@@ -97,15 +99,15 @@
     {
         try
         {
-            isLoading = jobs == null; // Only show loading on first load
+            isLoading = jobs == null;
             errorMessage = null;
-
-            jobs = await Http.GetFromJsonAsync<List<JobDto>>("/api/jobs");
-
+            var result = await JobMetadata.ListJobsAsync();
+            jobs = result.Select(j => MapToJobDto(j)).ToList();
             StartPollingIfNeeded();
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Failed to load jobs");
             errorMessage = $"Failed to load jobs: {ex.Message}";
         }
         finally
@@ -180,4 +182,10 @@
     {
         _refreshTimer?.Dispose();
     }
+
+    private static JobDto MapToJobDto(ProcessingJob job) => new(
+        job.JobId, job.FileName, Enum.Parse<JobStatus>(job.Status),
+        job.BlobUri, job.TranscriptBlobUri, job.SummaryBlobUri,
+        job.ErrorMessage, job.CreatedAt, job.UpdatedAt
+    );
 }

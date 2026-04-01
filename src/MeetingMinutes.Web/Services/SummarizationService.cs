@@ -1,23 +1,29 @@
+using System.Diagnostics;
 using System.Text.Json;
 using OpenAI;
 using MeetingMinutes.Shared.DTOs;
 using OpenAI.Chat;
 
-namespace MeetingMinutes.Api.Services;
+namespace MeetingMinutes.Web.Services;
 
 public class SummarizationService : ISummarizationService
 {
     private readonly OpenAIClient _client;
     private readonly ChatClient _chatClient;
+    private readonly ILogger<SummarizationService> _logger;
 
-    public SummarizationService(OpenAIClient client)
+    public SummarizationService(OpenAIClient client, ILogger<SummarizationService> logger)
     {
         _client = client;
         _chatClient = _client.GetChatClient("gpt-4o-mini");
+        _logger = logger;
     }
 
     public async Task<SummaryDto> SummarizeAsync(string transcript, CancellationToken ct = default)
     {
+        _logger.LogInformation("Starting summarization for transcript of length {Length}", transcript.Length);
+        var sw = Stopwatch.StartNew();
+
         var systemPrompt = """
             You are an expert meeting summarization assistant. Analyze the provided meeting transcript and extract structured information.
             
@@ -51,23 +57,20 @@ public class SummarizationService : ISummarizationService
             var response = await _chatClient.CompleteChatAsync(messages, cancellationToken: ct);
             var content = response.Value.Content[0].Text;
 
-            // Parse the JSON response into SummaryDto
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
+            _logger.LogInformation("Summarization completed in {ElapsedMs}ms, response length {Length}",
+                sw.ElapsedMilliseconds, content.Length);
 
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var summary = JsonSerializer.Deserialize<SummaryDto>(content, options);
 
             if (summary == null)
-            {
                 throw new InvalidOperationException("Failed to deserialize summary from OpenAI response");
-            }
 
             return summary;
         }
         catch (JsonException ex)
         {
+            _logger.LogError(ex, "Failed to parse JSON response from OpenAI after {ElapsedMs}ms", sw.ElapsedMilliseconds);
             throw new InvalidOperationException($"Failed to parse JSON response from OpenAI: {ex.Message}", ex);
         }
     }

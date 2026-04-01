@@ -1,4 +1,4 @@
-namespace MeetingMinutes.Api.Services;
+namespace MeetingMinutes.Web.Services;
 
 public interface ISpeechTranscriptionService
 {
