@@ -1,0 +1,7 @@
+{
+  "use": {
+    "baseURL": "http://localhost:5000",
+    "screenshot": "only-on-failure",
+    "trace": "on-first-retry"
+  }
+}

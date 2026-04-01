@@ -9,6 +9,26 @@
 **Solution projects:** MeetingMinutes.AppHost, MeetingMinutes.ServiceDefaults, MeetingMinutes.Api, MeetingMinutes.Web (Blazor WASM), MeetingMinutes.Shared  
 **Review gate:** ALL code must be reviewed and approved by Miller before any task is marked done.
 
+## Test Coverage Status
+
+### 2026-04-01: bUnit Component Tests Coverage Complete
+
+**Milestone:** All Web components now covered by bUnit tests (tests/MeetingMinutes.Web.Tests/)
+
+**Coverage achieved:**
+- ✅ NavMenu component (4 tests)
+- ✅ LoginDisplay component (5 tests)
+- ✅ Home page (4 tests)
+- ✅ Upload page (6 tests)
+- ✅ Jobs page (5 tests)
+- ✅ JobDetail page (6 tests)
+
+**Test Results:** 28 passing, 2 skipped (PageTitle component limitation, non-blocking)
+
+**Also added:** Playwright E2E tests (14 tests) for end-to-end user flows
+
+**Status:** ✅ All Web components covered by automated tests
+
 ## Learnings
 
 ### 2025 — Scaffold Fix (Miller's Review)

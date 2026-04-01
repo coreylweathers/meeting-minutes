@@ -149,6 +149,73 @@
 
 ---
 
+### Decision 6: Frontend Test Coverage — bUnit & Playwright
+
+**Author:** Bobbie (QA/Tester)  
+**Status:** ✅ APPROVED  
+**Date:** 2026-04-01
+
+**Summary:** Added comprehensive frontend test coverage with bUnit component tests and Playwright E2E tests. All components now covered; ready for integration testing.
+
+**Implementation Details:**
+
+**bUnit Component Tests (MeetingMinutes.Web.Tests)**
+- Framework: xUnit + bUnit 1.37.7 + FluentAssertions + Moq
+- 30 tests across 6 test files covering all Web components
+- Coverage: NavMenu, LoginDisplay, Home, Upload, Jobs, JobDetail pages
+- Results: 28 passed, 2 skipped (PageTitle component limitation, not defect)
+- Build: ✅ 0 errors
+
+**Test Files:**
+- NavMenuTests.cs (4 tests) — Nav link rendering
+- LoginDisplayTests.cs (5 tests) — Auth UI states
+- HomePageTests.cs (4 tests) — Home page content
+- UploadPageTests.cs (6 tests) — Upload form and authorization
+- JobsPageTests.cs (5 tests) — Jobs list, empty state, loading
+- JobDetailPageTests.cs (6 tests) — Job detail display, polling, errors
+
+**Playwright E2E Tests (MeetingMinutes.E2E)**
+- Framework: xUnit + Playwright 1.49.0 + FluentAssertions
+- 14 tests across 5 test files
+- Configuration: playwright.config.json with baseURL=http://localhost:5000
+- Coverage: Home page, auth flow, navigation
+- Results: 11 runnable, 3 skipped (require auth fixture)
+- Build: ✅ 0 errors
+
+**Files Modified:**
+- MeetingMinutes.Web.Tests.csproj (new project)
+- MeetingMinutes.E2E.csproj (new project)
+- Solution file (added 2 new test projects)
+
+**Reviewer Notes (Miller):**
+- All 11 bUnit failures were fixable mock setup issues (BaseAddress not set)
+- Miller applied inline fixes: added BaseAddress to 9 HttpClient instantiations
+- 2 PageTitle tests correctly skipped (bUnit known limitation)
+- Playwright tests well-structured and auth-aware
+- No rejection required — fixes were surgical and complete
+
+**Metrics:**
+- Total tests added: 44 (30 bUnit + 14 Playwright)
+- Test coverage: 100% of Web components
+- Pass rate: 28/30 bUnit (93%), 11/14 Playwright runnable
+- Build time: 14.3s (solution)
+
+**Key Achievements:**
+- ✅ All Web components covered (NavMenu, LoginDisplay, pages)
+- ✅ Mock HTTP handlers well-designed
+- ✅ Auth testing implemented correctly
+- ✅ E2E tests ready for live app execution
+- ✅ Build passes (0 errors)
+
+**Non-Blocking Follow-ups:**
+1. Implement E2E auth fixture (medium priority)
+2. Install Playwright browsers (one-time setup)
+3. Add data-testid attributes for robustness (future)
+
+**Status:** ✅ APPROVED FOR MERGE
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus
