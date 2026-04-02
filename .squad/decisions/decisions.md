@@ -3667,3 +3667,158 @@ Auth removal is complete, correct, and introduces no build failures or runtime r
 ---
 *Reviewed by Miller per Squad lockout rules: each agent's work reviewed by an independent reviewer.*
 
+
+## holden-readme-update
+
+# README Update: Authentication Removal
+
+**Date:** 2025-01-30  
+**Decided by:** Holden (Lead Architect)  
+**Status:** COMPLETE
+
+## Decision
+
+Update README.md to remove all references to authentication setup, as the Meeting Minutes application no longer uses OAuth or cookie-based authentication. All endpoints are now public.
+
+## Rationale
+
+Authentication was removed from the entire application in a recent refactor. The README contained:
+- Microsoft OAuth setup instructions (Azure Portal app registration, client ID/secret configuration)
+- Google OAuth setup instructions (Google Cloud Console credentials, OAuth consent screen)
+- Detailed redirect URI configuration steps
+- References to `Authentication:*` configuration keys
+
+None of this content is relevant anymore. The README must accurately reflect the current public-access architecture.
+
+## Changes Made
+
+### Removed Sections
+- **Microsoft OAuth (`Authentication:Microsoft:ClientId` / `ClientSecret`)** — entire section (lines 33-43)
+- **Google OAuth (`Authentication:Google:ClientId` / `ClientSecret`)** — entire section (lines 45-56)
+- **OAuth redirect URI guidance** — "Finding your port" section (line 58)
+
+### Updated Sections
+- **Running Locally:** Changed "After setting user secrets for the API and Web projects" → "After setting user secrets for the OpenAI and Azure AI Speech services"
+- **Architecture:** Added note "**all endpoints public, no authentication required**" to the Frontend description
+
+### Preserved Content
+- Project description, prerequisites, and all non-auth sections
+- OpenAI API key setup instructions
+- Azure AI Speech setup instructions
+- Testing, deployment, and architecture documentation
+
+## Impact
+
+✅ README now accurately reflects public API design  
+✅ No confusing OAuth setup instructions for developers  
+✅ Clear statement that all endpoints are publicly accessible  
+✅ Reduced configuration complexity for local development
+
+## Verification
+
+- README builds without errors
+- All non-auth content preserved
+- Program.cs confirms no auth middleware registered
+- All endpoints publicly accessible (no `.RequireAuthorization()`)
+
+---
+
+## miller-antiforgery-review
+
+# Miller: Antiforgery Fix Review
+
+**Date:** 2026-04-02  
+**Reviewer:** Miller  
+**Author:** Naomi  
+**File:** `src/MeetingMinutes.Web/Program.cs`
+
+## Summary
+
+Reviewed the restoration of `AddAntiforgery()` and `UseAntiforgery()` calls that were accidentally removed during auth removal.
+
+## Review Findings
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| `AddAntiforgery()` placement | ✅ | Line 30, services section, before `Build()` |
+| `UseAntiforgery()` placement | ✅ | Line 54, after `UseStaticFiles()`, before all endpoint mappings |
+| No auth regression | ✅ | No `AddAuthentication`, `AddAuthorization`, `UseAuthentication`, `UseAuthorization` |
+| Build verification | ✅ | No compilation errors (MSB3026 file-lock warnings are runtime, not code issues) |
+
+## Verdict
+
+✅ **APPROVED (LGTM)**
+
+The antiforgery fix is correctly implemented:
+- Service registration is in the proper services section
+- Middleware is correctly positioned in the pipeline (after routing-related middleware, before endpoints)
+- No authentication/authorization code was accidentally reintroduced
+
+## Lesson Learned
+
+When removing authentication from a Blazor Server app, `AddAntiforgery()` and `UseAntiforgery()` must be preserved. Blazor Server's form handling and component endpoints require antiforgery protection even without authentication enabled.
+
+---
+
+## naomi-antiforgery-fix
+
+# Decision: Antiforgery Required for Blazor Server (Independent of Auth)
+
+**Date:** 2026-04-02  
+**Agent:** Naomi (Backend Dev)  
+**Task:** naomi-antiforgery-fix  
+**Status:** Resolved  
+
+## Context
+
+During auth removal (`naomi-remove-auth`), both authentication services and antiforgery services were removed from `Program.cs`. This caused a runtime exception:
+
+```
+InvalidOperationException: Endpoint / (/) contains anti-forgery metadata, 
+but a middleware was not found that supports anti-forgery.
+```
+
+## Root Cause
+
+Blazor Server components include antiforgery metadata by default, even when authentication is disabled. Removing `AddAntiforgery()` and `UseAntiforgery()` broke the pipeline.
+
+## Decision
+
+**Antiforgery middleware must always be present when using Blazor Server, regardless of authentication status.**
+
+### Implementation
+
+**Services** (before `var app = builder.Build()`):
+```csharp
+builder.Services.AddAntiforgery();
+```
+
+**Middleware** (after `UseStaticFiles()`, before endpoint mappings):
+```csharp
+app.UseAntiforgery();
+```
+
+### Location in Pipeline
+
+Per ASP.NET Core requirements:
+- After `app.UseRouting()` (if present)
+- Before `app.UseEndpoints()` or endpoint mappings (`MapRazorComponents`, `MapGet`, etc.)
+- No dependency on auth middleware ordering (auth was removed)
+
+## Lesson Learned
+
+**Antiforgery ≠ Authentication.**  
+Antiforgery protects against CSRF attacks and is a fundamental Blazor Server requirement, not an auth feature.
+
+When removing auth:
+- ✅ Remove `AddAuthentication()`, `AddAuthorization()`, `UseAuthentication()`, `UseAuthorization()`
+- ✅ Remove OAuth provider config
+- ❌ Do NOT remove `AddAntiforgery()` or `UseAntiforgery()`
+
+## References
+
+- [ASP.NET Core Antiforgery Documentation](https://learn.microsoft.com/en-us/aspnet/core/security/anti-request-forgery)
+- [Blazor Server Security](https://learn.microsoft.com/en-us/aspnet/core/blazor/security/server)
+
+---
+

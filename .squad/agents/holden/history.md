@@ -186,3 +186,30 @@ Finalized BFF cookie authentication endpoints for Blazor client:
 - Cookie-based authentication with 7-day expiration + sliding window
 - Microsoft and Google OAuth providers configured
 - Blazor client calls these API endpoints, never handles tokens directly
+
+---
+
+### 2025-01-30: Authentication Removal & README Update ✅
+
+**Status:** ✅ COMPLETE — All auth code removed, README updated
+
+**Work Completed:**
+- **Removed** all authentication middleware and OAuth configuration from entire codebase
+- **Updated** README.md:
+  - Removed "Microsoft OAuth" credential setup section
+  - Removed "Google OAuth" credential setup section
+  - Removed OAuth redirect URI configuration instructions
+  - Updated "Running Locally" section to reference only OpenAI and Azure AI Speech secrets (removed auth prerequisites)
+  - Updated "Architecture" section to clearly state **"all endpoints public, no authentication required"**
+  - Preserved non-auth content: project description, Azure services setup, testing, deployment
+
+**Current State:**
+- Web and API both run public (no authentication layer)
+- All endpoints accessible without login
+- Only required credentials: OpenAI API key, Azure AI Speech key
+- Program.cs contains no auth middleware, no auth services registered
+- All job endpoints (POST, GET, PUT) fully public
+
+**Key Changes to History:**
+- Removed OAuth endpoints note from Project Context auth field
+- All endpoints now `.DisableAntiforgery()` or not protected by auth

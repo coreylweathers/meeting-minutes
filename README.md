@@ -30,36 +30,11 @@ AI-powered meeting transcription and summarization.
    dotnet user-secrets set "ConnectionStrings:speech" "Endpoint=https://<region>.api.cognitive.microsoft.com/;Key=<key1>"
    ```
 
-#### Microsoft OAuth (`Authentication:Microsoft:ClientId` / `ClientSecret`)
-1. Go to [Azure Portal](https://portal.azure.com) → **Microsoft Entra ID** → **App registrations** → **New registration**
-2. Name: `Meeting Minutes (local)`, Supported account types: **Accounts in any organizational directory and personal Microsoft accounts**
-3. Redirect URI: `Web` → `https://localhost:<port>/signin-microsoft` (check your Aspire dashboard for the **web** resource port — the Web UI and API run as separate processes)
-4. After registration, copy the **Application (client) ID**
-5. Go to **Certificates & secrets** → **New client secret** → copy the value immediately
-6. Set the secrets:
-   ```bash
-   dotnet user-secrets set "Authentication:Microsoft:ClientId" "<application-id>"
-   dotnet user-secrets set "Authentication:Microsoft:ClientSecret" "<client-secret-value>"
-   ```
 
-#### Google OAuth (`Authentication:Google:ClientId` / `ClientSecret`)
-1. Go to [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services** → **Credentials**
-2. Click **Create Credentials** → **OAuth client ID**
-3. Application type: **Web application**, Name: `Meeting Minutes (local)`
-4. Authorized redirect URIs: `https://localhost:<port>/signin-google` (use the **web** resource port from the Aspire dashboard, not the API port)
-5. Copy the **Client ID** and **Client Secret**
-6. Set the secrets:
-   ```bash
-   dotnet user-secrets set "Authentication:Google:ClientId" "<client-id>"
-   dotnet user-secrets set "Authentication:Google:ClientSecret" "<client-secret>"
-   ```
-   > 💡 You may need to configure the **OAuth consent screen** first (External, test mode is fine for dev).
-
-> **Finding your port:** Run `dotnet run` from `src/MeetingMinutes.AppHost` — the Aspire dashboard URL is printed to the console. Both the **web** and **api** resource ports are shown there. OAuth redirect URIs should use the **web** port.
 
 ### Running Locally
 
-1. After setting user secrets for the API and Web projects, run with Aspire:
+1. After setting user secrets for the OpenAI and Azure AI Speech services, run with Aspire:
    ```bash
    cd src/MeetingMinutes.AppHost
    dotnet run
@@ -95,7 +70,7 @@ The deployment uses Azure Developer CLI (azd) with .NET Aspire integration. The 
 Container Apps will scale to zero replicas when idle, minimizing costs.
 
 ## Architecture
-- **Frontend**: Blazor Interactive Server (standalone ASP.NET Core process, SignalR-based)
+- **Frontend**: Blazor Interactive Server (standalone ASP.NET Core process, SignalR-based) — **all endpoints public, no authentication required**
 - **Backend**: ASP.NET Core Minimal API + BackgroundService worker (separate process from the Web app)
 - **Storage**: Azure Blob Storage (videos, transcripts, summaries) + Table Storage (job metadata)
 - **AI**: Azure AI Speech (transcription) + Azure OpenAI GPT-4o Mini (summarization)
