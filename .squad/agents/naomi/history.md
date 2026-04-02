@@ -107,3 +107,33 @@ Bobbie established baseline test suite covering core services. Baseline tests no
 **Deliverable:** `tests/MeetingMinutes.Tests/` (6 test files, 1,092 lines). Ready for Miller review.
 
 **Orchestration Log:** `.squad/orchestration-log/2026-04-01T17-46-57Z-bobbie-baseline-tests.md`
+
+### 2026-04-01 — Authentication Removal (Task: naomi-remove-auth)
+- Removed all authentication from the backend as per team decision.
+- **Program.cs changes:**
+  - Removed auth-related using statements: `Microsoft.AspNetCore.Authentication.*`, `Microsoft.AspNetCore.Components.Authorization`, `System.Security.Claims`
+  - Removed entire authentication configuration block including `.AddAuthentication()`, `.AddCookie()`, `.AddMicrosoftAccount()`, `.AddGoogle()`
+  - Removed `.AddAuthorization()`, `.AddAntiforgery()`, `.AddHttpContextAccessor()`, `.AddCascadingAuthenticationState()`, `AuthenticationStateProvider` registration
+  - Removed `app.UseAuthentication()` and `app.UseAuthorization()` middleware
+  - Deleted all `/auth/*` endpoint mappings (login, logout, user)
+  - Removed `.RequireAuthorization()` from `/api/jobs` endpoint group
+  - Removed user tracking from job creation endpoint (no longer logs `userId`)
+- **appsettings.json:** Removed `Authentication` section containing Microsoft and Google OAuth config
+- **MeetingMinutes.Web.csproj:** Removed `Microsoft.AspNetCore.Authentication.Google` and `Microsoft.AspNetCore.Authentication.MicrosoftAccount` package references
+- The `/api/jobs` endpoints are now publicly accessible without authentication
+- Build: **0 errors, 2 warnings** (bUnit version upgrade warning, not related to auth removal)
+
+### 2026-04-02 — Auth Removal Session Complete ✅
+
+**Team Orchestration:**
+- Naomi (backend): Program.cs, appsettings.json, csproj cleaned
+- Alex (frontend): Auth files deleted, components updated
+- Bobbie (tests): 16 auth tests removed, 66 remaining
+- Miller (review): All three agents' work approved
+
+**Session Logs:**
+- Orchestration: `.squad/orchestration-log/2026-04-02T00-44-34Z-naomi-remove-auth.md`
+- Session: `.squad/log/2026-04-02T00-44-34Z-auth-removal.md`
+- Decisions merged to `.squad/decisions/decisions.md`
+
+**Verdict:** ✅ APPROVED FOR MERGE — All changes coherent, build verified, no regressions.

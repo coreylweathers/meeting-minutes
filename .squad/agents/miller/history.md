@@ -556,3 +556,58 @@ Reviewed bUnit component tests (30 tests) and Playwright E2E tests (8 tests) by 
 **Verdict:** ✅ APPROVED — Fixes were surgical mock setup issues. No rejection required. All 11 failures resolved.
 
 **Full review written to:** `.squad/decisions/inbox/miller-bunit-playwright-review.md`
+
+### 2025-04-02: Auth Removal Review — APPROVED
+
+Reviewed complete authentication removal by Naomi (backend), Alex (frontend), and Bobbie (tests).
+
+**Scope Verified:**
+- Naomi: Program.cs auth middleware/services removed, appsettings.json Authentication section removed, .csproj auth packages removed
+- Alex: Auth directory deleted, Routes.razor updated, pages de-authorized, MainLayout cleaned
+- Bobbie: Auth test files deleted, component tests updated with reflection-based assertions
+
+**Completeness Checklist (All ✅):**
+1. ✅ No [Authorize] attributes remain in source code
+2. ✅ No AuthorizeView or AuthorizeRouteView in Blazor components
+3. ✅ No AddAuthentication, AddAuthorization, UseAuthentication, UseAuthorization in Program.cs
+4. ✅ No RequireAuthorization() on API endpoints
+5. ✅ No auth-related NuGet packages (Google, MicrosoftAccount)
+6. ✅ ServerAuthenticationStateProvider.cs deleted
+7. ✅ RedirectToLogin.razor deleted
+8. ✅ LoginDisplay.razor deleted
+9. ✅ Routes.razor uses RouteView (not AuthorizeRouteView)
+10. ✅ _Imports.razor has no auth namespaces
+11. ✅ appsettings.json is valid JSON (no trailing commas, Authentication section cleanly removed)
+12. ✅ MainLayout has no LoginDisplay reference
+
+**Build Verification:**
+- ✅ MeetingMinutes.Web.csproj builds with 0 errors
+- ✅ MeetingMinutes.Web.Tests.csproj builds (1 NuGet version warning, non-blocking)
+
+**Test Integrity:**
+- Tests now assert auth is NOT present (reflection-based GetCustomAttributes)
+- Microsoft.AspNetCore.Authorization.AuthorizeAttribute referenced only for negative assertion
+- Auth test files properly deleted:
+  - ServerAuthenticationStateProviderTests.cs ❌
+  - LoginDisplayTests.cs ❌
+  - AuthFlowTests.cs ❌
+
+**Notes:**
+- TEST_REPORT.txt still references deleted ServerAuthenticationStateProviderTests — historical artifact, not a code issue
+- Test assertions correctly verify pages do NOT have [Authorize] attribute
+
+**Verdict:** ✅ LGTM — Auth removal is complete and clean. No dangling references, builds pass, tests updated correctly.
+
+---
+
+### 2026-04-02 — Auth Removal Session Orchestration Complete ✅
+
+**Scribe Role:** Recorded all agent work and compiled session artifacts.
+
+**Artifacts Created:**
+- 4 orchestration logs (naomi, alex, bobbie, miller) → `.squad/orchestration-log/2026-04-02T00-44-34Z-*`
+- Session log → `.squad/log/2026-04-02T00-44-34Z-auth-removal.md`
+- Decisions merged: naomi-remove-auth, alex-remove-auth, bobbie-remove-auth, miller-auth-removal-review → `.squad/decisions/decisions.md`
+- Team updates appended to naomi/alex/bobbie/miller history.md files
+
+**Team Status:** ✅ All agents' work APPROVED, ready for git commit

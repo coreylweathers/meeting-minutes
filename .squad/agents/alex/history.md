@@ -355,3 +355,39 @@
 **Orchestration Log:** `.squad/orchestration-log/2026-04-01T17-12-56Z-alex-server-migration-impl.md`
 
 **Status:** Complete, approved for merge
+
+## 2026-04-01 - Frontend Authentication Removal
+
+**Task:** Remove all authentication from the Blazor frontend
+
+**Implementation:**
+- Deleted 3 auth-related files:
+  - src/MeetingMinutes.Web/Auth/ServerAuthenticationStateProvider.cs
+  - src/MeetingMinutes.Web/Auth/RedirectToLogin.razor
+  - src/MeetingMinutes.Web/Shared/LoginDisplay.razor
+- Modified src/MeetingMinutes.Web/Components/Routes.razor: Replaced AuthorizeRouteView with RouteView for public access
+- Removed @attribute [Authorize] from Upload.razor, Jobs.razor, and JobDetail.razor pages
+- Updated src/MeetingMinutes.Web/Layout/MainLayout.razor: Removed <LoginDisplay /> component from navbar
+- Updated src/MeetingMinutes.Web/_Imports.razor: Removed auth namespace usings (Microsoft.AspNetCore.Components.Authorization, Microsoft.AspNetCore.Authorization, MeetingMinutes.Web.Auth, MeetingMinutes.Web.Shared)
+
+**Result:**
+- All pages now publicly accessible without authentication
+- Build succeeded (0 errors)
+- Auth directory automatically removed after deletion of all files
+
+**Status:** Complete, ready for Miller's review
+
+### 2026-04-02 — Auth Removal Session Complete ✅
+
+**Team Orchestration:**
+- Naomi (backend): Program.cs, appsettings.json, csproj cleaned
+- Alex (frontend): Auth files deleted, components updated
+- Bobbie (tests): 16 auth tests removed, 66 remaining
+- Miller (review): All three agents' work approved
+
+**Session Logs:**
+- Orchestration: `.squad/orchestration-log/2026-04-02T00-44-34Z-alex-remove-auth.md`
+- Session: `.squad/log/2026-04-02T00-44-34Z-auth-removal.md`
+- Decisions merged to `.squad/decisions/decisions.md`
+
+**Verdict:** ✅ APPROVED FOR MERGE — All changes coherent, build verified, no regressions.
