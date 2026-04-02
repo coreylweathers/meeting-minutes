@@ -391,3 +391,49 @@
 - Decisions merged to `.squad/decisions/decisions.md`
 
 **Verdict:** ✅ APPROVED FOR MERGE — All changes coherent, build verified, no regressions.
+
+### 2026-04-02 — Executive Transcript Design System Implementation
+
+**Context:** Migrated from Bootstrap 5 to custom "The Executive Transcript" design system with Tailwind CSS, Material Symbols, and premium branding.
+
+**Implementation Details:**
+- **Tailwind CSS:** Switched to Tailwind Play CDN (cdn.tailwindcss.com) with full custom color palette config (64 design system colors).
+- **Typography:** Google Fonts Manrope (headlines) + Inter (body/labels) replace Bootstrap default sans-serif.
+- **Icons:** Material Symbols Outlined replace Bootstrap Icons — all icon references updated to `<span class="material-symbols-outlined">icon_name</span>`.
+- **Layouts:** Created two separate layouts:
+  - `MainLayout.razor`: App layout with fixed sidebar navigation (Jobs, Upload pages)
+  - `LandingLayout.razor`: Marketing layout without sidebar (Home page only)
+- **Component Updates:**
+  - `Home.razor`: Full landing page with hero, bento grid features, how-it-works, CTA sections
+  - `Jobs.razor`: Dashboard with stats cards and 3-column card grid (preserves all backend logic)
+  - `Upload.razor`: 2-column upload interface with drag-drop zone and curation settings panel
+  - `JobDetail.razor`: 2-column bento layout with AI summary sidebar and full transcript panel
+
+**Key Design Patterns:**
+- **Glassmorphism:** Used for floating panels (`background: rgba(255,255,255,0.8); backdrop-filter: blur(24px)`)
+- **AI Content Highlight:** Electric violet (`#aa5fef` / `on-tertiary-container`) reserved for AI-generated content borders/accents
+- **Surface Color Shifts:** No hard borders — separation achieved via `surface-container-low`, `surface-container-lowest`, etc.
+- **Status Badges:** Completed (primary-fixed), Processing (secondary-container + animate-pulse), Error (error-container)
+
+**Blazor-Specific Notes:**
+- Tailwind Play CDN works seamlessly with Blazor Interactive Server (MutationObserver handles dynamic rendering)
+- All @code blocks preserved exactly — only HTML templates changed
+- Material Symbols use `font-variation-settings` for fill/weight control
+- No `@rendermode` directives needed on pages (already set on `<Routes>` in App.razor)
+
+**Files Modified:** 7 files
+1. `App.razor` — CDN links, Tailwind config, global styles
+2. `LandingLayout.razor` — NEW: marketing layout
+3. `MainLayout.razor` — sidebar + top header
+4. `Home.razor` — landing page with @layout directive
+5. `Jobs.razor` — dashboard cards grid
+6. `Upload.razor` — 2-column upload UI
+7. `JobDetail.razor` — bento layout with AI summary
+
+**Build Status:** ✅ 0 errors (2 non-blocking NU1603 warnings on test project package versions)
+
+**What I Learned:**
+- Tailwind Play CDN is production-ready for Blazor apps (no build step needed)
+- Material Symbols require explicit `font-variation-settings` CSS for proper fill/weight rendering
+- Keeping layouts simple (2 total) is cleaner than complex nested layout hierarchies
+- Design system color names (e.g., `on-tertiary-container`) are verbose but self-documenting once you learn the Material Design 3 token system

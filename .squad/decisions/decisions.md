@@ -3822,3 +3822,112 @@ When removing auth:
 
 ---
 
+
+---
+
+## Decision: Executive Transcript Design System Adoption
+
+**Author:** Alex (Frontend Developer)  
+**Date:** 2026-04-02  
+**Status:** ✅ IMPLEMENTED  
+**Task:** Implement "The Executive Transcript" Design System
+
+### Summary
+
+Replaced Bootstrap 5 styling with a premium custom design system featuring Tailwind CSS, Material Symbols icons, and the "Executive Transcript / Digital Curator" brand identity. All pages now use a cohesive design language with glassmorphism, soft color transitions, and electric violet accents for AI-generated content.
+
+### Decision Points
+
+**CSS Framework: Tailwind Play CDN**
+- Play CDN requires zero build configuration
+- Custom color palette (64 colors) injected via inline config script
+- Container queries and forms plugins loaded via CDN query params
+
+**Icon Library: Material Symbols Outlined**
+- Material Design 3 aligned
+- 2,500+ icons covering all UI needs
+- Variable font with adjustable fill, weight, grade, optical size
+
+**Typography: Manrope + Inter**
+- Manrope: geometric sans-serif for headlines (editorial feel)
+- Inter: highly legible body text (screen optimized)
+- Both via Google Fonts CDN
+
+**Layout Architecture: Two Separate Layouts**
+- MainLayout.razor: app pages with sidebar
+- LandingLayout.razor: home page (marketing, no sidebar)
+- Cleaner than conditional rendering in single layout
+
+**Design Patterns**
+- Glassmorphism for floating panels (24px blur)
+- Electric violet (#aa5fef) exclusive to AI-generated content
+- Surface color hierarchy without hard borders
+- Status badge system (Completed/Processing/Error)
+
+### Files Modified
+
+- App.razor: Tailwind CDN + fonts + icons + config
+- LandingLayout.razor: NEW — marketing layout
+- MainLayout.razor: app layout with sidebar
+- Home.razor: landing page (hero, features, how-it-works, CTA)
+- Jobs.razor: dashboard with stats + grid
+- Upload.razor: 2-column form in sidebar layout
+- JobDetail.razor: bento layout with summary + transcript
+
+### Build Verification
+
+✅ Build Status: 0 errors (2 non-blocking NU1603 warnings)
+
+### Next Steps
+
+1. Code review (Miller) → APPROVED
+2. QA: Update bUnit tests for Tailwind classes
+3. Future: Tailwind CLI for production optimization
+4. Future: Dark mode support
+
+---
+
+## Decision: Code Review Approval (Design System)
+
+**Reviewer:** Miller (Code Reviewer)  
+**Requested by:** Corey Weathers  
+**Date:** 2026-04-02
+
+### Verdict: ✅ **APPROVED — LGTM**
+
+All files reviewed and passed verification:
+
+- **App.razor**: Tailwind CDN + config correct
+- **LandingLayout.razor**: Proper marketing layout
+- **MainLayout.razor**: App layout with sidebar
+- **Home.razor**: Valid Razor, landing page links
+- **Jobs.razor**: Backend logic preserved, badges correct
+- **Upload.razor**: MainLayout used (sidebar included)
+- **JobDetail.razor**: Polling logic intact
+
+### Checks Passed
+
+✅ Auth removed from all UI  
+✅ Upload uses MainLayout (sidebar)  
+✅ Bootstrap completely removed  
+✅ @code blocks unchanged  
+✅ Build passes  
+✅ No hardcoded secrets  
+✅ No Razor syntax errors  
+✅ Material Symbols used consistently  
+✅ No external image URLs  
+
+### Key Finding
+
+Upload.razor correctly uses default MainLayout — no @layout override needed. Sidebar is present on all app pages.
+
+---
+
+## Decision: User Directive — Upload Page Sidebar
+
+**Author:** Corey Weathers (via Copilot CLI)  
+**Date:** 2026-04-01  
+**Directive:** Upload page should use MainLayout (sidebar), not standalone layout
+
+**Resolution:** ✅ IMPLEMENTED  
+Upload.razor uses default MainLayout with sidebar. Consistent with all app pages.

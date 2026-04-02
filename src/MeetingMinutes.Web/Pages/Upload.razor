@@ -7,75 +7,168 @@
 @using MeetingMinutes.Shared.Entities
 @using MeetingMinutes.Shared.Enums
 
-<PageTitle>Upload - Meeting Minutes</PageTitle>
+<PageTitle>Upload & Processing | The Executive Transcript</PageTitle>
 
-<div class="container mt-5">
-    <div class="row">
-        <div class="col-md-8 mx-auto">
-            <h2>Upload Meeting Video</h2>
-
-            @if (uploadState == UploadState.Success && createdJobId != null)
-            {
-                <div class="alert alert-success" role="alert">
-                    <h4 class="alert-heading">Job created successfully!</h4>
-                    <p>Your video has been uploaded and is being processed.</p>
-                    <hr>
-                    <a href="/jobs/@createdJobId" class="btn btn-primary">View Job Status →</a>
-                </div>
-            }
-            else if (uploadState == UploadState.Error)
-            {
-                <div class="alert alert-danger" role="alert">
-                    <h4 class="alert-heading">Upload failed</h4>
-                    <p>@errorMessage</p>
-                    <button class="btn btn-outline-danger" @onclick="ResetForm">Try Again</button>
-                </div>
-            }
-            else
-            {
-                <EditForm Model="@uploadModel" OnValidSubmit="@HandleSubmit">
-                    <DataAnnotationsValidator />
-                    <ValidationSummary class="text-danger" />
-
-                    <div class="mb-3">
-                        <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-                        <InputText id="title" class="form-control" @bind-Value="uploadModel.Title" 
-                                   placeholder="Enter meeting title" disabled="@(uploadState == UploadState.Uploading)" />
-                        <ValidationMessage For="@(() => uploadModel.Title)" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="file" class="form-label">Video File <span class="text-danger">*</span></label>
-                        <InputFile id="file" class="form-control" accept="video/*" 
-                                   OnChange="@OnFileSelected" disabled="@(uploadState == UploadState.Uploading)" />
-                        @if (!string.IsNullOrEmpty(validationError))
-                        {
-                            <div class="text-danger mt-1">@validationError</div>
-                        }
-                        @if (selectedFile != null)
-                        {
-                            <div class="text-muted mt-1">Selected: @selectedFile.Name (@FormatFileSize(selectedFile.Size))</div>
-                        }
-                    </div>
-
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary" disabled="@(uploadState == UploadState.Uploading || selectedFile == null)">
-                            @if (uploadState == UploadState.Uploading)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                <span>Uploading...</span>
-                            }
-                            else
-                            {
-                                <span>Upload Video</span>
-                            }
-                        </button>
-                    </div>
-                </EditForm>
-            }
-        </div>
+<main class="max-w-6xl mx-auto px-8 py-12">
+    <!-- Hero Editorial Header -->
+    <div class="mb-12">
+        <h1 class="font-headline text-5xl font-extrabold tracking-tight text-primary mb-4">Ingest Intelligence.</h1>
+        <p class="text-on-surface-variant text-lg max-w-2xl leading-relaxed">Transform your raw audio and video into curated executive summaries. Our AI engine distills complex dialogue into actionable clarity.</p>
     </div>
-</div>
+
+    @if (uploadState == UploadState.Success && createdJobId != null)
+    {
+        <div class="bg-primary-fixed p-8 rounded-xl border-l-4 border-primary shadow-lg max-w-2xl mx-auto">
+            <div class="flex gap-4">
+                <span class="material-symbols-outlined text-primary text-4xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                <div class="flex-1">
+                    <h3 class="font-headline text-xl font-bold text-on-primary-fixed mb-2">Job created successfully!</h3>
+                    <p class="text-on-primary-fixed-variant mb-6">Your video has been uploaded and is being processed.</p>
+                    <a href="/jobs/@createdJobId" class="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-md font-bold text-sm hover:opacity-90 transition-all">
+                        View Job Status
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+    else if (uploadState == UploadState.Error)
+    {
+        <div class="bg-error-container p-8 rounded-xl border-l-4 border-error shadow-lg max-w-2xl mx-auto">
+            <div class="flex gap-4">
+                <span class="material-symbols-outlined text-error text-4xl">error</span>
+                <div class="flex-1">
+                    <h3 class="font-headline text-xl font-bold text-on-error-container mb-2">Upload failed</h3>
+                    <p class="text-on-error-container mb-6">@errorMessage</p>
+                    <button class="bg-error text-on-error px-6 py-3 rounded-md font-bold text-sm hover:opacity-90 transition-all" @onclick="ResetForm">Try Again</button>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="@uploadModel" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                <!-- Left Column: Upload Area -->
+                <div class="lg:col-span-7 space-y-8">
+                    <!-- Drag and Drop Area -->
+                    <div class="relative group">
+                        <div class="absolute -inset-0.5 bg-gradient-to-r from-primary to-tertiary-container rounded-xl blur opacity-10 group-hover:opacity-20 transition duration-1000 group-hover:duration-200"></div>
+                        <div class="relative bg-surface-container-lowest p-12 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-outline-variant/20 hover:border-primary/40 transition-all duration-300 min-h-[400px]">
+                            <div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-6">
+                                <span class="material-symbols-outlined text-primary text-3xl">upload_file</span>
+                            </div>
+                            <h3 class="font-headline text-xl font-bold mb-2">Drop your recordings here</h3>
+                            <p class="text-on-surface-variant text-sm mb-4">MP3, MP4, WAV, or MOV (Max 2GB)</p>
+                            @if (selectedFile != null)
+                            {
+                                <div class="text-sm text-on-surface mb-4">Selected: <strong>@selectedFile.Name</strong> (@FormatFileSize(selectedFile.Size))</div>
+                            }
+                            <InputFile id="file" class="hidden" accept="video/*,audio/*" OnChange="@OnFileSelected" disabled="@(uploadState == UploadState.Uploading)" />
+                            <label for="file" class="bg-primary text-on-primary px-8 py-3 rounded-md font-label font-bold flex items-center gap-2 hover:opacity-90 transition-all shadow-sm cursor-pointer">
+                                Select Files
+                            </label>
+                            @if (!string.IsNullOrEmpty(validationError))
+                            {
+                                <div class="text-error text-sm mt-4">@validationError</div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Title Input -->
+                    <div class="bg-surface-container-lowest p-8 rounded-xl">
+                        <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3 block">Meeting Title</label>
+                        <InputText id="title" class="w-full bg-transparent border-b-2 border-outline-variant/30 focus:border-primary py-3 text-lg focus:outline-none transition-colors font-headline" @bind-Value="uploadModel.Title" placeholder="Enter meeting title" disabled="@(uploadState == UploadState.Uploading)" />
+                        <ValidationMessage For="@(() => uploadModel.Title)" class="text-error text-sm mt-2" />
+                    </div>
+
+                    <!-- Processing State (Visible when uploading) -->
+                    @if (uploadState == UploadState.Uploading)
+                    {
+                        <div class="bg-surface-container-low p-8 rounded-xl space-y-6">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <span class="text-xs font-bold uppercase tracking-widest text-on-tertiary-container mb-1 block">Phase 01 of 03</span>
+                                    <h4 class="font-headline text-xl font-bold">Uploading File...</h4>
+                                </div>
+                            </div>
+                            <div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-primary to-on-tertiary-container w-1/3 rounded-full animate-pulse"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Right Column: Configuration & AI Options -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm space-y-8">
+                        <div>
+                            <h3 class="font-headline text-lg font-bold mb-6 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-on-tertiary-container">settings_suggest</span>
+                                Curation Settings
+                            </h3>
+                            <div class="space-y-6">
+                                <!-- Language Selection (Visual only) -->
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Source Language</label>
+                                    <select class="w-full bg-surface-container-low border-none rounded-md px-4 py-3 text-sm focus:ring-1 focus:ring-primary appearance-none" disabled="@(uploadState == UploadState.Uploading)">
+                                        <option>English (US/UK)</option>
+                                        <option>German (DE)</option>
+                                        <option>French (FR)</option>
+                                        <option>Mandarin (CN)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Summary Style Pills (Visual only) -->
+                                <div class="space-y-3">
+                                    <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Summary Tone</label>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="px-4 py-2 rounded-full text-xs font-bold bg-primary text-white cursor-pointer">Executive Brief</span>
+                                        <span class="px-4 py-2 rounded-full text-xs font-medium bg-surface-container-low text-on-surface-variant border border-outline-variant/20 hover:bg-surface-container-high cursor-pointer transition-colors">Action Items Only</span>
+                                        <span class="px-4 py-2 rounded-full text-xs font-medium bg-surface-container-low text-on-surface-variant border border-outline-variant/20 hover:bg-surface-container-high cursor-pointer transition-colors">Verbatim Script</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pt-4">
+                            <button type="submit" class="w-full bg-tertiary-container text-on-tertiary-container py-4 rounded-md font-headline font-extrabold flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-sm" disabled="@(uploadState == UploadState.Uploading || selectedFile == null)">
+                                @if (uploadState == UploadState.Uploading)
+                                {
+                                    <div class="w-5 h-5 rounded-full border-2 border-on-tertiary-container border-t-transparent animate-spin"></div>
+                                    <span>Uploading...</span>
+                                }
+                                else
+                                {
+                                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                                    <span>Initialize Transcription</span>
+                                }
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Info Card -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border-l-4 border-primary">
+                        <div class="flex gap-4">
+                            <span class="material-symbols-outlined text-primary">info</span>
+                            <div class="space-y-1">
+                                <p class="text-sm font-bold">High Precision Mode Active</p>
+                                <p class="text-xs text-on-surface-variant leading-relaxed">Speaker separation is enhanced for groups up to 12 participants. Audio quality will be automatically normalized.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    }
+
+    <!-- Background Decoration -->
+    <div class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
+        <div class="absolute top-[10%] left-[5%] w-96 h-96 bg-tertiary-container/10 blur-[120px] rounded-full"></div>
+        <div class="absolute bottom-[20%] right-[10%] w-[500px] h-[500px] bg-secondary-container/5 blur-[150px] rounded-full"></div>
+    </div>
+</main>
 
 @code {
     private UploadModel uploadModel = new();

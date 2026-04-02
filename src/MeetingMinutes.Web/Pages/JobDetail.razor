@@ -10,216 +10,282 @@
 @using System.Timers
 @implements IDisposable
 
-<PageTitle>Job Details - Meeting Minutes</PageTitle>
+<PageTitle>@(job?.FileName ?? "Job Detail") | The Executive Transcript</PageTitle>
 
-<div class="container mt-5">
-    <div class="row">
-        <div class="col-md-10 mx-auto">
-            @if (isLoading)
-            {
-                <div class="text-center">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Loading...</span>
+<main class="bg-surface min-h-screen">
+    @if (isLoading)
+    {
+        <div class="flex items-center justify-center py-32">
+            <div class="text-center">
+                <span class="material-symbols-outlined text-6xl text-primary animate-spin inline-block">progress_activity</span>
+                <p class="mt-6 text-on-surface-variant font-label">Loading job details...</p>
+            </div>
+        </div>
+    }
+    else if (job == null)
+    {
+        <div class="max-w-2xl mx-auto py-20 px-8">
+            <div class="bg-error-container p-8 rounded-xl text-center">
+                <span class="material-symbols-outlined text-6xl text-error mb-4 inline-block">error</span>
+                <h3 class="font-headline text-2xl font-bold text-on-error-container mb-2">Job Not Found</h3>
+                <p class="text-on-error-container mb-6">The requested job could not be found.</p>
+                <a href="/jobs" class="inline-flex items-center gap-2 bg-error text-on-error px-6 py-3 rounded-md font-bold text-sm hover:opacity-90 transition-all">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    Back to Archive
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="px-8 py-10 max-w-7xl mx-auto">
+            <!-- Navigation -->
+            <div class="mb-6">
+                <a href="/jobs" class="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-label">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    Back to Archive
+                </a>
+            </div>
+
+            <!-- Metadata Row -->
+            <div class="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        @if (job.Status == JobStatus.Completed)
+                        {
+                            <span class="bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 text-xs font-bold rounded-full uppercase tracking-widest">Completed</span>
+                        }
+                        else if (job.Status == JobStatus.Failed)
+                        {
+                            <span class="bg-error-container text-on-error-container px-3 py-1 text-xs font-bold rounded-full uppercase tracking-widest">Error</span>
+                        }
+                        else
+                        {
+                            <span class="bg-secondary-container text-on-secondary-container px-3 py-1 text-xs font-bold rounded-full uppercase tracking-widest animate-pulse">Processing</span>
+                        }
+                        <span class="text-on-surface-variant text-sm font-medium">@job.CreatedAt.ToString("MMMM dd, yyyy")</span>
                     </div>
-                </div>
-            }
-            else if (job == null)
-            {
-                <div class="alert alert-danger">Job not found.</div>
-            }
-            else
-            {
-                <!-- Job Header -->
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h2>@job.FileName</h2>
-                            <small class="text-muted">Created: @job.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</small>
-                        </div>
-                        <span class="badge @GetStatusBadgeClass()">@job.Status</span>
-                    </div>
-                    @if (IsProcessing())
-                    {
-                        <div class="mt-3">
-                            <div class="spinner-border spinner-border-sm me-2" role="status">
-                                <span class="visually-hidden">Processing...</span>
-                            </div>
-                            <span>Processing...</span>
-                        </div>
-                    }
+                    <h2 class="text-5xl font-extrabold tracking-tight text-primary font-headline">@job.FileName</h2>
                     @if (!string.IsNullOrEmpty(job.ErrorMessage))
                     {
-                        <div class="alert alert-danger mt-3">
-                            <strong>Error:</strong> @job.ErrorMessage
+                        <div class="mt-4 bg-error-container p-4 rounded-lg border-l-4 border-error">
+                            <p class="text-on-error-container text-sm"><strong>Error:</strong> @job.ErrorMessage</p>
                         </div>
                     }
                 </div>
+            </div>
 
-                <!-- Navigation -->
-                <div class="mb-3">
-                    <a href="/jobs" class="btn btn-secondary">&larr; Back to Jobs</a>
-                </div>
-
-                @if (job.Status == JobStatus.Completed)
-                {
-                    <!-- Transcript Section -->
-                    <div class="card mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h4 class="mb-0">Transcript</h4>
-                            <button class="btn btn-sm btn-outline-primary" @onclick="CopyTranscript">
-                                Copy
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            @if (transcriptLoading)
-                            {
-                                <div class="spinner-border spinner-border-sm" role="status">
-                                    <span class="visually-hidden">Loading transcript...</span>
-                                </div>
-                            }
-                            else if (!string.IsNullOrEmpty(transcript))
-                            {
-                                <pre class="transcript-box">@transcript</pre>
-                            }
-                            else
-                            {
-                                <p class="text-muted">No transcript available.</p>
-                            }
+            @if (IsProcessing())
+            {
+                <div class="mb-12 bg-secondary-container p-8 rounded-xl">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full border-4 border-on-secondary-container border-t-transparent animate-spin"></div>
+                        <div>
+                            <h3 class="font-headline text-xl font-bold text-on-secondary-container mb-1">Processing in Progress</h3>
+                            <p class="text-on-secondary-container/80 text-sm">Your meeting is being transcribed and analyzed...</p>
                         </div>
                     </div>
+                </div>
+            }
 
-                    <!-- Summary Section -->
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h4 class="mb-0">Summary</h4>
-                            @if (!isEditMode)
-                            {
-                                <button class="btn btn-sm btn-outline-primary" @onclick="ToggleEditMode">
-                                    Edit
-                                </button>
-                            }
-                        </div>
-                        <div class="card-body">
-                            @if (summaryLoading)
-                            {
-                                <div class="spinner-border spinner-border-sm" role="status">
-                                    <span class="visually-hidden">Loading summary...</span>
+            @if (job.Status == JobStatus.Completed)
+            {
+                <!-- Bento Layout Content -->
+                <div class="grid grid-cols-12 gap-10">
+                    <!-- AI Summary Column -->
+                    <div class="col-span-12 lg:col-span-5 space-y-10">
+                        @if (summaryLoading)
+                        {
+                            <div class="bg-surface-container-low rounded-xl p-8">
+                                <span class="material-symbols-outlined text-primary text-4xl animate-spin inline-block">progress_activity</span>
+                                <p class="mt-4 text-on-surface-variant">Loading summary...</p>
+                            </div>
+                        }
+                        else if (summary != null)
+                        {
+                            <section class="bg-surface-container-low rounded-xl p-8 relative overflow-hidden border-l-4 border-on-tertiary-container">
+                                <div class="absolute top-0 right-0 p-4 opacity-10">
+                                    <span class="material-symbols-outlined text-6xl" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
                                 </div>
-                            }
-                            else if (summary != null)
-                            {
+                                <div class="flex items-center justify-between mb-6">
+                                    <h3 class="text-on-tertiary-container font-headline font-bold text-xl flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-on-tertiary-container">auto_awesome</span>
+                                        Executive Intelligence
+                                    </h3>
+                                    @if (!isEditMode)
+                                    {
+                                        <button class="text-primary hover:text-on-tertiary-container transition-colors" @onclick="ToggleEditMode">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+                                    }
+                                </div>
+
                                 @if (isEditMode)
                                 {
                                     <!-- Edit Mode -->
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold">Title</label>
-                                        <input type="text" class="form-control" @bind="editTitle" />
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold">Duration (minutes)</label>
-                                        <input type="number" class="form-control" @bind="editDurationMinutes" />
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold">Attendees (comma-separated)</label>
-                                        <textarea class="form-control" rows="2" @bind="editAttendees"></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold">Key Points (one per line)</label>
-                                        <textarea class="form-control" rows="4" @bind="editKeyPoints"></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold">Action Items (one per line)</label>
-                                        <textarea class="form-control" rows="4" @bind="editActionItems"></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold">Decisions (one per line)</label>
-                                        <textarea class="form-control" rows="4" @bind="editDecisions"></textarea>
-                                    </div>
-                                    <div class="d-flex gap-2">
-                                        <button class="btn btn-primary" @onclick="SaveSummary" disabled="@isSaving">
-                                            @if (isSaving)
-                                            {
-                                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                            }
-                                            Save
-                                        </button>
-                                        <button class="btn btn-secondary" @onclick="CancelEdit" disabled="@isSaving">
-                                            Cancel
-                                        </button>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-2 block">Title</label>
+                                            <input type="text" class="w-full bg-surface-container-lowest border border-outline-variant rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none" @bind="editTitle" />
+                                        </div>
+                                        <div>
+                                            <label class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-2 block">Duration (minutes)</label>
+                                            <input type="number" class="w-full bg-surface-container-lowest border border-outline-variant rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none" @bind="editDurationMinutes" />
+                                        </div>
+                                        <div>
+                                            <label class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-2 block">Attendees (comma-separated)</label>
+                                            <textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none" rows="3" @bind="editAttendees"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-2 block">Key Points (one per line)</label>
+                                            <textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none" rows="5" @bind="editKeyPoints"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-2 block">Action Items (one per line)</label>
+                                            <textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none" rows="5" @bind="editActionItems"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-2 block">Decisions (one per line)</label>
+                                            <textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none" rows="5" @bind="editDecisions"></textarea>
+                                        </div>
+                                        <div class="flex gap-3 pt-4">
+                                            <button class="flex-1 bg-primary text-on-primary py-3 rounded-md font-bold hover:opacity-90 transition-all" @onclick="SaveSummary" disabled="@isSaving">
+                                                @if (isSaving)
+                                                {
+                                                    <div class="w-5 h-5 rounded-full border-2 border-on-primary border-t-transparent animate-spin inline-block mr-2"></div>
+                                                }
+                                                Save
+                                            </button>
+                                            <button class="px-6 bg-surface-container text-on-surface py-3 rounded-md font-bold hover:bg-surface-dim transition-all" @onclick="CancelEdit" disabled="@isSaving">Cancel</button>
+                                        </div>
                                     </div>
                                 }
                                 else
                                 {
                                     <!-- Display Mode -->
-                                    <div class="mb-3">
-                                        <h5 class="fw-bold">Title</h5>
-                                        <p>@summary.Title</p>
-                                    </div>
-                                    <div class="mb-3">
-                                        <h5 class="fw-bold">Duration</h5>
-                                        <p>@summary.DurationMinutes min</p>
-                                    </div>
-                                    <div class="mb-3">
-                                        <h5 class="fw-bold">Attendees</h5>
-                                        <ul>
-                                            @foreach (var attendee in summary.Attendees)
-                                            {
-                                                <li>@attendee</li>
-                                            }
-                                        </ul>
-                                    </div>
-                                    <div class="mb-3">
-                                        <h5 class="fw-bold">Key Points</h5>
-                                        <ul>
-                                            @foreach (var point in summary.KeyPoints)
-                                            {
-                                                <li>@point</li>
-                                            }
-                                        </ul>
-                                    </div>
-                                    <div class="mb-3">
-                                        <h5 class="fw-bold">Action Items</h5>
-                                        <ul>
-                                            @foreach (var item in summary.ActionItems)
-                                            {
-                                                <li>@item</li>
-                                            }
-                                        </ul>
-                                    </div>
-                                    <div class="mb-3">
-                                        <h5 class="fw-bold">Decisions</h5>
-                                        <ul>
-                                            @foreach (var decision in summary.Decisions)
-                                            {
-                                                <li>@decision</li>
-                                            }
-                                        </ul>
+                                    <div class="space-y-8">
+                                        <div>
+                                            <h4 class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-3">Meeting Title</h4>
+                                            <p class="text-lg text-on-surface leading-relaxed font-body">@summary.Title</p>
+                                        </div>
+                                        @if (summary.KeyPoints?.Any() == true)
+                                        {
+                                            <div>
+                                                <h4 class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-3">Core Objectives</h4>
+                                                <ul class="space-y-3">
+                                                    @foreach (var point in summary.KeyPoints)
+                                                    {
+                                                        <li class="flex gap-3">
+                                                            <span class="material-symbols-outlined text-on-tertiary-container mt-1">check_circle</span>
+                                                            <p class="text-on-surface">@point</p>
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                        }
+                                        @if (summary.Decisions?.Any() == true)
+                                        {
+                                            <div>
+                                                <h4 class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-3">Key Decisions</h4>
+                                                <ul class="space-y-3">
+                                                    @foreach (var decision in summary.Decisions)
+                                                    {
+                                                        <li class="flex gap-3">
+                                                            <span class="material-symbols-outlined text-on-tertiary-container mt-1">check_circle</span>
+                                                            <p class="text-on-surface">@decision</p>
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                        }
+                                        @if (summary.ActionItems?.Any() == true)
+                                        {
+                                            <div class="bg-surface-container-lowest p-6 rounded-lg shadow-sm">
+                                                <h4 class="text-xs uppercase tracking-widest font-bold text-on-tertiary-container mb-4">Critical Action Items</h4>
+                                                <div class="space-y-3">
+                                                    @foreach (var item in summary.ActionItems)
+                                                    {
+                                                        <div class="flex items-center gap-3">
+                                                            <div class="w-2 h-2 rounded-full bg-on-tertiary-container"></div>
+                                                            <span class="text-on-surface font-medium">@item</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
                                 }
+                            </section>
+
+                            <!-- Participant Sidebar Block -->
+                            @if (summary.Attendees?.Any() == true)
+                            {
+                                <div class="bg-surface-container-low rounded-xl p-8">
+                                    <h4 class="text-xs uppercase tracking-widest font-bold text-on-surface-variant mb-6">Participants (@summary.Attendees.Length)</h4>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        @foreach (var attendee in summary.Attendees)
+                                        {
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-xs font-bold text-on-primary-fixed">
+                                                    @GetInitials(attendee)
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-bold text-on-surface">@attendee</p>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="bg-surface-container-low rounded-xl p-8">
+                                <p class="text-on-surface-variant">No summary available.</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Transcript Column -->
+                    <div class="col-span-12 lg:col-span-7">
+                        <div class="bg-surface-container-lowest rounded-xl p-8 shadow-sm">
+                            <div class="flex items-center justify-between mb-8">
+                                <h3 class="font-headline font-bold text-xl text-primary">Full Transcript</h3>
+                                <div class="flex gap-3">
+                                    <div class="relative w-48">
+                                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">search</span>
+                                        <input class="w-full pl-9 pr-4 py-2 text-sm bg-transparent border-b border-outline-variant/20 focus:border-primary focus:ring-0 outline-none transition-all" placeholder="Search..." type="text"/>
+                                    </div>
+                                    <button class="flex items-center gap-2 px-4 py-2 bg-surface-container hover:bg-surface-dim rounded-md transition-colors" @onclick="CopyTranscript">
+                                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                                        <span class="text-sm font-medium">Copy</span>
+                                    </button>
+                                </div>
+                            </div>
+                            @if (transcriptLoading)
+                            {
+                                <div class="py-12 text-center">
+                                    <span class="material-symbols-outlined text-4xl text-primary animate-spin inline-block">progress_activity</span>
+                                    <p class="mt-4 text-on-surface-variant">Loading transcript...</p>
+                                </div>
+                            }
+                            else if (!string.IsNullOrEmpty(transcript))
+                            {
+                                <div class="prose prose-sm max-w-none">
+                                    <pre class="text-on-surface-variant leading-relaxed text-[15px] font-body whitespace-pre-wrap">@transcript</pre>
+                                </div>
                             }
                             else
                             {
-                                <p class="text-muted">No summary available.</p>
+                                <p class="text-on-surface-variant py-8">No transcript available.</p>
                             }
                         </div>
                     </div>
-                }
+                </div>
             }
         </div>
-    </div>
-</div>
-
-<style>
-    .transcript-box {
-        background-color: #f8f9fa;
-        padding: 1rem;
-        border-radius: 0.25rem;
-        max-height: 400px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        word-wrap: break-word;
     }
-</style>
+</main>
 
 @code {
     [Parameter]
@@ -364,6 +430,15 @@
             JobStatus.Failed => "bg-danger",
             _ => "bg-warning"
         };
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "??";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "??";
+        if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+        return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpper();
     }
 
     private async Task CopyTranscript()

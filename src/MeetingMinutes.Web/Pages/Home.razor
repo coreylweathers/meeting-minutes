@@ -1,17 +1,161 @@
 @page "/"
+@layout LandingLayout
 
-<PageTitle>Home - Meeting Minutes</PageTitle>
+<PageTitle>Meeting Minutes | The Executive Transcript</PageTitle>
 
-<div class="container mt-5">
-    <div class="row">
-        <div class="col-md-8 mx-auto text-center">
-            <h1 class="display-4">Meeting Minutes</h1>
-            <p class="lead mt-3">
-                Upload your meeting videos and get AI-generated transcripts and summaries.
+<!-- Hero Section -->
+<section class="relative min-h-[921px] flex items-center overflow-hidden bg-surface">
+    <div class="container mx-auto px-8 grid lg:grid-cols-2 gap-12 items-center relative z-10">
+        <div class="max-w-2xl">
+            <span class="inline-block bg-tertiary-container text-on-tertiary-container px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-6">AI-Powered Curation</span>
+            <h1 class="font-headline text-6xl md:text-7xl font-extrabold text-primary leading-[1.1] mb-8 tracking-tight">
+                Meetings to <br/> <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Insights.</span>
+            </h1>
+            <p class="text-lg text-on-surface-variant leading-relaxed mb-10 max-w-lg">
+                Transform chaotic conversation into boardroom-ready intelligence. Our Digital Curator platform doesn't just transcribe—it distills executive-level clarity from every session.
             </p>
-            <div class="mt-4">
-                <a href="/upload" class="btn btn-primary btn-lg">Get Started</a>
+            <div class="flex flex-wrap gap-4">
+                <a href="/upload" class="bg-primary text-on-primary px-8 py-4 rounded-md font-bold text-sm flex items-center gap-2 shadow-lg shadow-primary-container/10 hover:opacity-90 transition-all">
+                    Upload Recording <span class="material-symbols-outlined text-sm">cloud_upload</span>
+                </a>
+                <a href="/jobs" class="bg-surface-container-highest text-on-surface px-8 py-4 rounded-md font-bold text-sm hover:bg-surface-dim transition-all">
+                    View Demo
+                </a>
+            </div>
+        </div>
+        <div class="relative group">
+            <div class="absolute -inset-4 bg-gradient-to-tr from-primary-container/20 to-tertiary-container/10 rounded-[2rem] blur-3xl opacity-50 group-hover:opacity-70 transition-opacity"></div>
+            <div class="relative bg-surface-container-lowest rounded-xl overflow-hidden shadow-2xl">
+                <div class="w-full h-[500px] bg-gradient-to-br from-primary-container to-tertiary-container rounded-xl"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-primary-container/60 to-transparent"></div>
+                <div class="absolute bottom-8 left-8 right-8 glass-panel p-6 rounded-lg border-b border-white/20">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-2 h-2 rounded-full bg-on-tertiary-container animate-pulse"></div>
+                        <span class="text-xs font-bold text-primary uppercase tracking-tighter">AI Summary Generator</span>
+                    </div>
+                    <p class="font-headline text-lg font-bold text-primary leading-snug">"The Q3 expansion strategy hinges on decentralized talent acquisition and neural-network integration..."</p>
+                </div>
             </div>
         </div>
     </div>
-</div>
+</section>
+
+<!-- Bento Grid Features -->
+<section class="py-24 bg-surface-container-low">
+    <div class="container mx-auto px-8">
+        <div class="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-4">
+            <div>
+                <h2 class="font-headline text-4xl font-extrabold text-primary mb-4 tracking-tight">The Intelligence Layer</h2>
+                <p class="text-on-surface-variant max-w-md">Moving beyond the text to capture the core intent of every discussion.</p>
+            </div>
+            <div class="h-px flex-grow mx-10 bg-outline-variant/20 hidden lg:block"></div>
+            <span class="text-xs font-bold text-outline uppercase tracking-widest">Capabilities 01—04</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <!-- Feature 1: High Accuracy -->
+            <div class="md:col-span-8 bg-surface-container-lowest p-10 rounded-xl flex flex-col justify-between min-h-[400px] relative overflow-hidden group">
+                <div class="relative z-10">
+                    <span class="material-symbols-outlined text-primary text-4xl mb-6">text_fields</span>
+                    <h3 class="font-headline text-2xl font-bold text-primary mb-4">High-Accuracy Transcription</h3>
+                    <p class="text-on-surface-variant max-w-md">Proprietary neural engines optimized for technical jargon, diverse accents, and boardroom acoustics. 99% accuracy where it matters most.</p>
+                </div>
+                <div class="mt-8 flex gap-2 overflow-hidden">
+                    <span class="bg-surface-container-high px-4 py-2 rounded-full text-xs font-medium text-primary">Technical Terminology</span>
+                    <span class="bg-surface-container-high px-4 py-2 rounded-full text-xs font-medium text-primary">Speaker ID</span>
+                    <span class="bg-surface-container-high px-4 py-2 rounded-full text-xs font-medium text-primary">Multi-Language</span>
+                </div>
+                <div class="absolute -right-20 -bottom-20 w-64 h-64 bg-primary-container/5 rounded-full blur-3xl group-hover:bg-primary-container/10 transition-colors"></div>
+            </div>
+            <!-- Feature 2: Summaries -->
+            <div class="md:col-span-4 bg-tertiary-container p-10 rounded-xl flex flex-col text-on-tertiary shadow-xl relative overflow-hidden">
+                <span class="material-symbols-outlined text-on-tertiary-container text-4xl mb-6">auto_awesome</span>
+                <h3 class="font-headline text-2xl font-bold mb-4">AI-Generated Summaries</h3>
+                <p class="text-on-tertiary/70 text-sm leading-relaxed mb-6">We don't just summarize; we curate. Instant executive briefs, action items, and decision logs delivered to your inbox.</p>
+                <div class="mt-auto">
+                    <button class="w-full py-3 bg-on-tertiary-container text-tertiary-container font-bold rounded-md text-xs uppercase tracking-widest hover:brightness-110 transition-all">Enable Auto-Distill</button>
+                </div>
+            </div>
+            <!-- Feature 3: Deep Search -->
+            <div class="md:col-span-4 bg-surface-container-high p-10 rounded-xl flex flex-col group">
+                <span class="material-symbols-outlined text-primary text-4xl mb-6 group-hover:scale-110 transition-transform">manage_search</span>
+                <h3 class="font-headline text-2xl font-bold text-primary mb-4">Global Semantic Search</h3>
+                <p class="text-on-surface-variant text-sm">Search through your entire meeting history by intent, keyword, or speaker. Find that one detail in seconds, not hours.</p>
+            </div>
+            <!-- Feature 4: Integration -->
+            <div class="md:col-span-8 bg-surface-container-lowest p-10 rounded-xl flex items-center gap-12 group">
+                <div class="flex-1">
+                    <h3 class="font-headline text-2xl font-bold text-primary mb-4">Enterprise Continuity</h3>
+                    <p class="text-on-surface-variant text-sm">Seamlessly sync insights to Notion, Slack, and Salesforce. Your meetings become a living knowledge base for the whole organization.</p>
+                </div>
+                <div class="hidden sm:flex flex-wrap gap-4 w-1/3 justify-center opacity-40 group-hover:opacity-100 transition-opacity">
+                    <span class="material-symbols-outlined text-4xl">database</span>
+                    <span class="material-symbols-outlined text-4xl">hub</span>
+                    <span class="material-symbols-outlined text-4xl">cloud_sync</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How it Works -->
+<section class="py-24 bg-surface">
+    <div class="container mx-auto px-8">
+        <div class="text-center max-w-3xl mx-auto mb-20">
+            <h2 class="font-headline text-4xl font-extrabold text-primary mb-6">The Curator's Journey</h2>
+            <p class="text-on-surface-variant">Simple to use, profound in impact. Three steps to organizational clarity.</p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-16 relative">
+            <!-- Step 1 -->
+            <div class="relative">
+                <div class="text-[12rem] font-headline font-black text-surface-container-highest absolute -top-24 -left-8 leading-none opacity-40 pointer-events-none select-none">1</div>
+                <div class="relative pt-12">
+                    <div class="w-12 h-12 bg-primary text-on-primary flex items-center justify-center rounded-full mb-8">
+                        <span class="material-symbols-outlined">mic</span>
+                    </div>
+                    <h4 class="font-headline text-xl font-bold text-primary mb-4">Capture Everything</h4>
+                    <p class="text-on-surface-variant leading-relaxed">Upload any audio or video file, or invite our AI bot to join your live meetings on Zoom, Teams, or Meet.</p>
+                </div>
+            </div>
+            <!-- Step 2 -->
+            <div class="relative">
+                <div class="text-[12rem] font-headline font-black text-surface-container-highest absolute -top-24 -left-8 leading-none opacity-40 pointer-events-none select-none">2</div>
+                <div class="relative pt-12">
+                    <div class="w-12 h-12 bg-tertiary-container text-on-tertiary-container flex items-center justify-center rounded-full mb-8">
+                        <span class="material-symbols-outlined">psychology</span>
+                    </div>
+                    <h4 class="font-headline text-xl font-bold text-primary mb-4">AI Curation</h4>
+                    <p class="text-on-surface-variant leading-relaxed">Our models process the dialogue, identifying key speakers, topics, and creating a structured hierarchy of information.</p>
+                </div>
+            </div>
+            <!-- Step 3 -->
+            <div class="relative">
+                <div class="text-[12rem] font-headline font-black text-surface-container-highest absolute -top-24 -left-8 leading-none opacity-40 pointer-events-none select-none">3</div>
+                <div class="relative pt-12">
+                    <div class="w-12 h-12 bg-secondary text-on-secondary flex items-center justify-center rounded-full mb-8">
+                        <span class="material-symbols-outlined">rocket_launch</span>
+                    </div>
+                    <h4 class="font-headline text-xl font-bold text-primary mb-4">Actionable Output</h4>
+                    <p class="text-on-surface-variant leading-relaxed">Receive a polished transcript and an editorial-style summary ready to be shared with stakeholders immediately.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-24">
+    <div class="container mx-auto px-8">
+        <div class="bg-primary-container rounded-[2rem] p-12 md:p-20 text-center relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-96 h-96 bg-tertiary-container/20 blur-[100px]"></div>
+            <div class="absolute bottom-0 left-0 w-96 h-96 bg-on-tertiary-container/5 blur-[100px]"></div>
+            <div class="relative z-10 max-w-3xl mx-auto">
+                <h2 class="font-headline text-4xl md:text-5xl font-extrabold text-on-primary mb-8 tracking-tight">Ready to Elevate Your <br/> Meeting Culture?</h2>
+                <p class="text-on-primary-container text-lg mb-12">Join 2,500+ forward-thinking organizations using The Executive Transcript to drive decision-making.</p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="/upload" class="w-full sm:w-auto px-10 py-5 bg-on-tertiary-container text-tertiary-container rounded-md font-extrabold text-sm uppercase tracking-widest hover:scale-105 transition-transform">Start Free Trial</a>
+                    <a href="/jobs" class="w-full sm:w-auto px-10 py-5 border border-on-primary-container/30 text-on-primary rounded-md font-extrabold text-sm uppercase tracking-widest hover:bg-on-primary-container/10 transition-colors">Book Executive Demo</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,25 +1,61 @@
 @inherits LayoutComponentBase
 
-<div class="d-flex flex-column min-vh-100">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">Meeting Minutes</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <NavMenu />
-            </div>
+<!-- App Layout with Sidebar -->
+<div class="min-h-screen flex flex-col bg-background">
+    <!-- Fixed Top Header -->
+    <header class="fixed top-0 z-50 w-full bg-slate-50 dark:bg-slate-950 flex justify-between items-center px-8 h-16">
+        <div class="flex items-center gap-8">
+            <a href="/" class="font-headline text-xl font-black text-slate-900 dark:text-slate-50">The Executive Transcript</a>
+            <nav class="hidden md:flex gap-6 items-center">
+                <a class="font-headline font-extrabold tracking-tight uppercase text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-50 transition-colors" href="/jobs">My Meetings</a>
+                <a class="font-headline font-extrabold tracking-tight uppercase text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-50 transition-colors" href="/upload">Upload</a>
+            </nav>
         </div>
-    </nav>
+    </header>
 
-    <main class="flex-grow-1">
+    <!-- Left Sidebar Navigation -->
+    <aside class="hidden md:flex flex-col fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-slate-100 dark:bg-slate-900 py-6 px-4">
+        <div class="mb-8 flex flex-col gap-2">
+            <h2 class="font-headline font-black tracking-tighter text-primary text-2xl">The Curator</h2>
+            <span class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Premium Intelligence</span>
+        </div>
+        
+        <!-- Primary Action Button -->
+        <a href="/upload" class="mb-8 bg-primary text-on-primary py-3 px-4 rounded-md flex items-center justify-center gap-2 hover:opacity-90 transition-all font-medium">
+            <span class="material-symbols-outlined text-sm">add</span>
+            <span>New Transcript</span>
+        </a>
+        
+        <!-- Navigation Items -->
+        <nav class="flex-1 flex flex-col gap-1">
+            <a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-all rounded-lg" href="/jobs">
+                <span class="material-symbols-outlined">folder_open</span>
+                <span class="font-label">My Meetings</span>
+            </a>
+            <a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-all rounded-lg" href="/upload">
+                <span class="material-symbols-outlined">cloud_upload</span>
+                <span class="font-label">Upload</span>
+            </a>
+        </nav>
+        
+        <!-- Bottom Items -->
+        <div class="mt-auto pt-4 border-t border-outline-variant">
+            <a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-all rounded-lg" href="#">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="font-label">Settings</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 md:ml-64 pt-16 bg-background min-h-screen">
         @Body
     </main>
 
-    <footer class="bg-light py-3 mt-auto">
-        <div class="container text-center text-muted">
-            <small>&copy; @DateTime.Now.Year Meeting Minutes</small>
+    <!-- Footer -->
+    <footer class="md:ml-64 bg-surface-container-low py-6 mt-auto">
+        <div class="container mx-auto px-8 text-center">
+            <p class="text-sm text-on-surface-variant">&copy; The Executive Transcript. Digital Curation for Leaders.</p>
         </div>
     </footer>
 </div>

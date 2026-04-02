@@ -1,0 +1,15 @@
+feat: implement Executive Transcript design system
+
+Replace Bootstrap 5 with Tailwind CSS (Play CDN) and Material Symbols
+icons. Implements the "Digital Curator" premium design language across
+all Blazor pages.
+
+- App.razor: Tailwind CDN + custom color palette + Manrope/Inter fonts
+- LandingLayout.razor: new marketing layout (no sidebar)
+- MainLayout.razor: sidebar + top nav app shell
+- Home.razor: hero, bento features, how-it-works, CTA sections
+- Jobs.razor: card grid archive with stats, status badges
+- Upload.razor: 2-column upload form within sidebar layout
+- JobDetail.razor: AI summary + transcript bento layout
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
