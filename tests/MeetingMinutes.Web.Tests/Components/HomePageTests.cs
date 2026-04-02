@@ -1,5 +1,4 @@
 using Bunit;
-using Bunit.TestDoubles;
 using FluentAssertions;
 using MeetingMinutes.Web.Pages;
 using Xunit;

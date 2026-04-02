@@ -137,3 +137,11 @@ Bobbie established baseline test suite covering core services. Baseline tests no
 - Decisions merged to `.squad/decisions/decisions.md`
 
 **Verdict:** ✅ APPROVED FOR MERGE — All changes coherent, build verified, no regressions.
+
+### 2026-04-02 — Antiforgery Middleware Restored (Task: naomi-antiforgery-fix)
+- Restored antiforgery middleware that was incorrectly removed during auth removal.
+- **Program.cs changes:**
+  - Added `builder.Services.AddAntiforgery();` in services section (after AddRazorComponents)
+  - Added `app.UseAntiforgery();` in middleware pipeline (after UseStaticFiles, before endpoint mappings)
+- **Key learning:** Blazor Server requires antiforgery middleware independent of authentication. Must keep even in apps with no auth.
+- Exception fixed: `InvalidOperationException: Endpoint / (/) contains anti-forgery metadata, but a middleware was not found that supports anti-forgery.`

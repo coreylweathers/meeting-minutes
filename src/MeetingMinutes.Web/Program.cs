@@ -1,16 +1,9 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
-using Microsoft.AspNetCore.Components.Authorization;
 using MeetingMinutes.Web;
-using MeetingMinutes.Web.Auth;
 using MeetingMinutes.Web.Components;
 using MeetingMinutes.Web.Services;
 using MeetingMinutes.Web.Workers;
 using OpenAI;
 using System.ClientModel;
-using System.Security.Claims;
 using MeetingMinutes.Shared.DTOs;
 using MeetingMinutes.Shared.Entities;
 using MeetingMinutes.Shared.Enums;
@@ -33,34 +26,8 @@ builder.Services.AddSingleton(new OpenAIClient(new ApiKeyCredential(openAiApiKey
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Auth — cookie + OAuth providers (Microsoft + Google)
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/auth/login";
-        options.LogoutPath = "/auth/logout";
-        options.ExpireTimeSpan = TimeSpan.FromDays(7);
-        options.SlidingExpiration = true;
-    })
-    .AddMicrosoftAccount(options =>
-    {
-        options.ClientId = builder.Configuration["Authentication:Microsoft:ClientId"] ?? "";
-        options.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"] ?? "";
-    })
-    .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
-    {
-        options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-        options.CallbackPath = "/signin-google";
-    });
-
-builder.Services.AddAuthorization();
+// Antiforgery (required by Blazor Server)
 builder.Services.AddAntiforgery();
-
-// HttpContextAccessor needed for ServerAuthenticationStateProvider
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
 
 // Business services
 builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
@@ -86,57 +53,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.UseAuthentication();
-app.UseAuthorization();
-
-// Auth endpoints
-var auth = app.MapGroup("/auth");
-
-// GET /auth/login/{provider} — trigger OAuth challenge
-auth.MapGet("/login/{provider}", async (string provider, HttpContext ctx) =>
-{
-    var logger = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
-    var scheme = provider.ToLower() switch
-    {
-        "microsoft" => MicrosoftAccountDefaults.AuthenticationScheme,
-        "google" => GoogleDefaults.AuthenticationScheme,
-        _ => null
-    };
-    if (scheme is null)
-    {
-        logger.LogWarning("Unknown OAuth provider requested: {Provider}", provider);
-        return Results.BadRequest("Unknown provider");
-    }
-    logger.LogInformation("OAuth login initiated for provider: {Provider}", provider);
-    await ctx.ChallengeAsync(scheme, new AuthenticationProperties { RedirectUri = "/" });
-    return Results.Empty;
-});
-
-// GET /auth/logout — sign out
-auth.MapGet("/logout", async (HttpContext ctx) =>
-{
-    var logger = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
-    var userName = ctx.User.Identity?.Name ?? "unknown";
-    await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-    logger.LogInformation("User {User} signed out", userName);
-    return Results.Redirect("/");
-});
-
-// GET /auth/user — returns current user info
-auth.MapGet("/user", (HttpContext ctx) =>
-{
-    if (ctx.User.Identity?.IsAuthenticated != true)
-        return Results.Unauthorized();
-    return Results.Ok(new
-    {
-        name = ctx.User.Identity.Name,
-        email = ctx.User.FindFirstValue(ClaimTypes.Email)
-               ?? ctx.User.FindFirstValue(ClaimTypes.NameIdentifier)
-    });
-}).RequireAuthorization();
-
 // Job endpoints
-var jobs = app.MapGroup("/api/jobs").RequireAuthorization();
+var jobs = app.MapGroup("/api/jobs");
 
 jobs.MapPost("/", async (
     HttpContext context,
@@ -162,9 +80,8 @@ jobs.MapPost("/", async (
     using (var stream = file.OpenReadStream())
         blobUri = await blobStorage.UploadVideoAsync(stream, blobName, ct);
 
-    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
-    logger.LogInformation("Job {JobId} created by {UserId} for file {FileName} ({Size} bytes)",
-        jobId, userId, file.FileName, file.Length);
+    logger.LogInformation("Job {JobId} created for file {FileName} ({Size} bytes)",
+        jobId, file.FileName, file.Length);
 
     var job = new ProcessingJob
     {

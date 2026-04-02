@@ -1,5 +1,4 @@
 using Bunit;
-using Bunit.TestDoubles;
 using FluentAssertions;
 using MeetingMinutes.Web.Pages;
 using MeetingMinutes.Shared.DTOs;
@@ -15,22 +14,21 @@ namespace MeetingMinutes.Web.Tests.Components;
 public class JobsPageTests : TestContext
 {
     [Fact]
-    public void JobsPage_Requires_Authorization()
+    public void JobsPage_DoesNotRequire_Authorization()
     {
-        // Arrange
+        // Arrange - auth removed from project
         var authorizeAttribute = typeof(Jobs)
             .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), false)
             .FirstOrDefault();
         
         // Assert
-        authorizeAttribute.Should().NotBeNull("Jobs page should have [Authorize] attribute");
+        authorizeAttribute.Should().BeNull("Jobs page should NOT have [Authorize] attribute after auth removal");
     }
     
     [Fact]
     public async Task JobsPage_Shows_LoadingSpinner_Initially()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
         var mockHandler = new DelayedMockHttpMessageHandler();
         var mockHttpClient = new HttpClient(mockHandler) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
@@ -46,7 +44,6 @@ public class JobsPageTests : TestContext
     public async Task JobsPage_Shows_EmptyState_WhenNoJobs()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
         var emptyList = new List<JobDto>();
         var mockHandler = new MockJobsHttpMessageHandler(emptyList);
         var mockHttpClient = new HttpClient(mockHandler) { BaseAddress = new Uri("http://localhost") };
@@ -66,7 +63,6 @@ public class JobsPageTests : TestContext
     public async Task JobsPage_Displays_JobList_WhenJobsExist()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
         var jobs = new List<JobDto>
         {
             new JobDto(
@@ -112,7 +108,6 @@ public class JobsPageTests : TestContext
     public async Task JobsPage_Shows_ViewDetailsButtons()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
         var jobs = new List<JobDto>
         {
             new JobDto(

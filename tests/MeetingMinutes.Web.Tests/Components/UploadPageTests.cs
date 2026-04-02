@@ -1,5 +1,4 @@
 using Bunit;
-using Bunit.TestDoubles;
 using FluentAssertions;
 using MeetingMinutes.Web.Pages;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,23 +11,22 @@ namespace MeetingMinutes.Web.Tests.Components;
 public class UploadPageTests : TestContext
 {
     [Fact]
-    public void UploadPage_Requires_Authorization()
+    public void UploadPage_DoesNotRequire_Authorization()
     {
-        // Arrange
+        // Arrange - auth removed from project
         var authorizeAttribute = typeof(Upload)
             .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), false)
             .FirstOrDefault();
         
         // Assert
-        authorizeAttribute.Should().NotBeNull("Upload page should have [Authorize] attribute");
+        authorizeAttribute.Should().BeNull("Upload page should NOT have [Authorize] attribute after auth removal");
     }
     
     [Fact]
-    public void UploadPage_Renders_TitleInput_WhenAuthenticated()
+    public void UploadPage_Renders_TitleInput()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
-        var mockHttpClient = new HttpClient(new MockHttpMessageHandler());
+        var mockHttpClient = new HttpClient(new MockHttpMessageHandler()) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
         
         // Act
@@ -41,11 +39,10 @@ public class UploadPageTests : TestContext
     }
     
     [Fact]
-    public void UploadPage_Renders_FileInput_WhenAuthenticated()
+    public void UploadPage_Renders_FileInput()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
-        var mockHttpClient = new HttpClient(new MockHttpMessageHandler());
+        var mockHttpClient = new HttpClient(new MockHttpMessageHandler()) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
         
         // Act
@@ -59,11 +56,10 @@ public class UploadPageTests : TestContext
     }
     
     [Fact]
-    public void UploadPage_Renders_SubmitButton_WhenAuthenticated()
+    public void UploadPage_Renders_SubmitButton()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
-        var mockHttpClient = new HttpClient(new MockHttpMessageHandler());
+        var mockHttpClient = new HttpClient(new MockHttpMessageHandler()) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
         
         // Act
@@ -79,8 +75,7 @@ public class UploadPageTests : TestContext
     public void UploadPage_SubmitButton_IsDisabled_WhenNoFileSelected()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
-        var mockHttpClient = new HttpClient(new MockHttpMessageHandler());
+        var mockHttpClient = new HttpClient(new MockHttpMessageHandler()) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
         
         // Act
@@ -96,8 +91,7 @@ public class UploadPageTests : TestContext
     {
         // bUnit doesn't render <PageTitle> to DOM. PageTitle affects document head at runtime.
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
-        var mockHttpClient = new HttpClient(new MockHttpMessageHandler());
+        var mockHttpClient = new HttpClient(new MockHttpMessageHandler()) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
         
         // Act

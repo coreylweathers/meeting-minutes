@@ -1,11 +1,12 @@
 using Bunit;
-using Bunit.TestDoubles;
 using FluentAssertions;
 using MeetingMinutes.Web.Pages;
+using MeetingMinutes.Web.Services;
 using MeetingMinutes.Shared.DTOs;
 using MeetingMinutes.Shared.Enums;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -16,22 +17,25 @@ namespace MeetingMinutes.Web.Tests.Components;
 public class JobDetailPageTests : TestContext
 {
     [Fact]
-    public void JobDetailPage_Requires_Authorization()
+    public void JobDetailPage_DoesNotRequire_Authorization()
     {
-        // Arrange
+        // Arrange - auth removed from project
         var authorizeAttribute = typeof(JobDetail)
             .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), false)
             .FirstOrDefault();
         
         // Assert
-        authorizeAttribute.Should().NotBeNull("JobDetail page should have [Authorize] attribute");
+        authorizeAttribute.Should().BeNull("JobDetail page should NOT have [Authorize] attribute after auth removal");
     }
     
     [Fact]
     public async Task JobDetailPage_Shows_LoadingSpinner_Initially()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
+        var mockBlobService = new Mock<IBlobStorageService>();
+        var mockJobMetadataService = new Mock<IJobMetadataService>();
+        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
+        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
         var mockHandler = new DelayedJobDetailMockHandler();
         var mockHttpClient = new HttpClient(mockHandler) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
@@ -49,7 +53,10 @@ public class JobDetailPageTests : TestContext
     public async Task JobDetailPage_Shows_JobNotFound_WhenJobDoesNotExist()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
+        var mockBlobService = new Mock<IBlobStorageService>();
+        var mockJobMetadataService = new Mock<IJobMetadataService>();
+        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
+        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
         var mockHandler = new JobDetailNotFoundMockHandler();
         var mockHttpClient = new HttpClient(mockHandler) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
@@ -69,7 +76,10 @@ public class JobDetailPageTests : TestContext
     public async Task JobDetailPage_Displays_JobFileName()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
+        var mockBlobService = new Mock<IBlobStorageService>();
+        var mockJobMetadataService = new Mock<IJobMetadataService>();
+        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
+        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
         var job = new JobDto(
             JobId: "job1",
             FileName: "test-meeting.mp4",
@@ -100,7 +110,10 @@ public class JobDetailPageTests : TestContext
     public async Task JobDetailPage_Shows_ProcessingSpinner_ForPendingJob()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
+        var mockBlobService = new Mock<IBlobStorageService>();
+        var mockJobMetadataService = new Mock<IJobMetadataService>();
+        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
+        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
         var job = new JobDto(
             JobId: "job1",
             FileName: "processing.mp4",
@@ -131,7 +144,10 @@ public class JobDetailPageTests : TestContext
     public async Task JobDetailPage_Shows_ErrorMessage_ForFailedJob()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
+        var mockBlobService = new Mock<IBlobStorageService>();
+        var mockJobMetadataService = new Mock<IJobMetadataService>();
+        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
+        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
         var job = new JobDto(
             JobId: "job1",
             FileName: "failed.mp4",
@@ -163,7 +179,10 @@ public class JobDetailPageTests : TestContext
     public async Task JobDetailPage_Shows_TranscriptAndSummary_ForCompletedJob()
     {
         // Arrange
-        this.AddTestAuthorization().SetAuthorized("TestUser");
+        var mockBlobService = new Mock<IBlobStorageService>();
+        var mockJobMetadataService = new Mock<IJobMetadataService>();
+        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
+        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
         var job = new JobDto(
             JobId: "job1",
             FileName: "completed.mp4",

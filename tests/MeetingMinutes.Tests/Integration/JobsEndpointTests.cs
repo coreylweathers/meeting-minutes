@@ -11,30 +11,10 @@ public class JobsEndpointTests
 {
     [Trait("Category", "Integration")]
     [Fact(Skip = "Requires WebApplicationFactory setup with mocked Azure services")]
-    public async Task GetJobs_ShouldReturn401_WhenNotAuthenticated()
-    {
-        // This test would use WebApplicationFactory<Program> to:
-        // 1. Create a test server
-        // 2. Override Azure service registrations with mocks/test doubles
-        // 3. Make an HTTP GET request to /api/jobs without authentication
-        // 4. Assert response status is 401 Unauthorized
-        
-        // Challenges:
-        // - API Program.cs uses top-level statements (no Program class by default)
-        // - Need to add: <InternalsVisibleTo Include="MeetingMinutes.Tests" /> to Api.csproj
-        // - Need to mock: BlobServiceClient, TableServiceClient, AzureOpenAIClient, Speech services
-        // - Or use TestContainers for real Azure Storage Emulator
-        
-        // Implementation deferred - requires significant infrastructure setup
-        await Task.CompletedTask;
-    }
-
-    [Trait("Category", "Integration")]
-    [Fact(Skip = "Requires WebApplicationFactory setup with mocked Azure services")]
-    public async Task GetJobs_ShouldReturn200_WhenAuthenticated()
+    public async Task GetJobs_ShouldReturn200_WithJobList()
     {
         // This test would:
-        // 1. Create authenticated test client with valid claims
+        // 1. Create test client with WebApplicationFactory
         // 2. Make GET request to /api/jobs
         // 3. Assert 200 OK response
         // 4. Verify response contains job list
@@ -140,7 +120,7 @@ public class JobsEndpointTests
 ///                // Remove real Azure services
 ///                RemoveService<BlobServiceClient>(services);
 ///                RemoveService<TableServiceClient>(services);
-///                RemoveService<AzureOpenAIClient>(services);
+///                RemoveService<OpenAIClient>(services);
 ///                
 ///                // Add mocks or in-memory test doubles
 ///                services.AddSingleton<BlobServiceClient>(Mock.Of<BlobServiceClient>());
@@ -149,12 +129,8 @@ public class JobsEndpointTests
 ///        }
 ///    }
 /// 
-/// 3. Create authenticated test client:
+/// 3. Create test client:
 ///    var client = factory.CreateClient();
-///    client.DefaultRequestHeaders.Authorization = 
-///        new AuthenticationHeaderValue("Test", "test-user-123");
 ///    
-///    Or use a TestAuthHandler to inject claims.
-/// 
 /// 4. Alternative: Use Testcontainers for real Azure Storage Emulator (Azurite)
 /// </summary>

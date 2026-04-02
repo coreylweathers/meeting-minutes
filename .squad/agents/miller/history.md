@@ -611,3 +611,21 @@ Reviewed complete authentication removal by Naomi (backend), Alex (frontend), an
 - Team updates appended to naomi/alex/bobbie/miller history.md files
 
 **Team Status:** ✅ All agents' work APPROVED, ready for git commit
+
+---
+
+### 2026-04-02 — Antiforgery Fix Review ✅
+
+**Context:** Naomi restored AddAntiforgery() and UseAntiforgery() after they were accidentally removed during auth removal, causing InvalidOperationException: Endpoint / contains anti-forgery metadata, but a middleware was not found that supports anti-forgery.
+
+**Review Checklist:**
+1. ✅ uilder.Services.AddAntiforgery() — Line 30, in services section before uilder.Build() (line 42)
+2. ✅ pp.UseAntiforgery() — Line 54, correctly placed:
+   - After UseStaticFiles() (line 53)
+   - Before all endpoint mappings (MapGroup, MapRazorComponents)
+3. ✅ No auth regression — Confirmed no AddAuthentication, AddAuthorization, UseAuthentication, UseAuthorization present
+4. ✅ Build verification — No C# compilation errors (only MSB3026 file-lock warnings because app is running)
+
+**Lesson:** When removing auth, antiforgery must remain — Blazor Server requires it even without authentication. The middleware must always be placed after routing middleware but before endpoint mappings.
+
+**Verdict:** ✅ **LGTM** — Antiforgery fix is correct and complete.
