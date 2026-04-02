@@ -1,3 +1,9 @@
+![.NET 10](https://img.shields.io/badge/.NET-10-blueviolet)
+![Azure](https://img.shields.io/badge/Azure-Cloud-blue)
+![Aspire](https://img.shields.io/badge/.NET-Aspire-512BD4)
+![Blazor](https://img.shields.io/badge/Blazor-Interactive_Server-9A3FF5)
+
+
 # Meeting Minutes
 
 AI-powered meeting transcription and summarization.
