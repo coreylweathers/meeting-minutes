@@ -1,4 +1,5 @@
 {
+  "license": "GPL-3.0-only",
   "dependencies": {
     "@bradygaster/squad-cli": "^0.9.1"
   }
