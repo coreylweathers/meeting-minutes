@@ -1,3 +1,9 @@
+![.NET 10](https://img.shields.io/badge/.NET-10-blueviolet)
+![Azure](https://img.shields.io/badge/Azure-Cloud-blue)
+![Aspire](https://img.shields.io/badge/.NET-Aspire-512BD4)
+![Blazor](https://img.shields.io/badge/Blazor-Interactive_Server-9A3FF5)
+
+
 # Meeting Minutes
 
 AI-powered meeting transcription and summarization.
@@ -75,3 +81,9 @@ Container Apps will scale to zero replicas when idle, minimizing costs.
 - **Storage**: Azure Blob Storage (videos, transcripts, summaries) + Table Storage (job metadata)
 - **AI**: Azure AI Speech (transcription) + Azure OpenAI GPT-4o Mini (summarization)
 - **Orchestration**: .NET Aspire manages both Web and API as separate resources (local dashboard + Azure Container Apps in production, scale-to-zero)
+
+## License
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
