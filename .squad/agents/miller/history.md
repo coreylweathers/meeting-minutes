@@ -629,3 +629,41 @@ Reviewed complete authentication removal by Naomi (backend), Alex (frontend), an
 **Lesson:** When removing auth, antiforgery must remain — Blazor Server requires it even without authentication. The middleware must always be placed after routing middleware but before endpoint mappings.
 
 **Verdict:** ✅ **LGTM** — Antiforgery fix is correct and complete.
+
+### 2026-04-01: Navigation Consistency Fix Review — APPROVED WITH NOTES
+
+Reviewed navigation consistency improvements by Alex across LandingLayout, MainLayout, Upload, Jobs, and JobDetail pages.
+
+**Review Scope:**
+- NavLink component setup and Match parameters
+- ActiveClass token consistency
+- Semantic HTML (`<main>` nesting fix)
+- Theme token usage for sidebar styling
+- Back navigation placement
+
+**All Core Checks Passed (7/7):**
+1. ✅ NavLink `Match` parameters correct — `Prefix` for route hierarchies, `All` for exact pages
+2. ✅ `ActiveClass="bg-surface-container text-primary font-semibold"` consistent across sidebar items
+3. ✅ Nested `<main>` tags removed from pages — replaced with `<div>`, layout provides `<main>`
+4. ✅ Sidebar uses theme tokens (`bg-surface-container-low`) instead of raw Tailwind (`bg-slate-100`)
+5. ✅ Back navigation added to Upload.razor with proper styling
+6. ✅ JobDetail.razor already had back navigation — unchanged
+7. ✅ No broken references or missing closing tags
+
+**Issue Found:**
+- ⚠️ `NavMenu.razor` still exists (uses Bootstrap classes, orphaned, never referenced) — deletion claimed but not performed
+
+**Non-Blocking Follow-up:**
+- Naomi: Delete orphaned `NavMenu.razor` file
+
+**Verdict:** ⚠️ **APPROVED WITH NOTES** — Navigation fix is correct. Orphaned file deletion is non-blocking cleanup.
+
+### 2026-04-02: Navigation Review Approval — Inbox Consolidation
+
+**Scribe Action:** Merged navigation review decisions into `.squad/decisions.md` and documented approval record.
+
+**Records Consolidated:**
+- Decision 11: Alex's navigation consistency implementation (approved)
+- Decision 12: Miller's review with approval + nav review notes (approved with notes)
+
+**Status:** ✅ Navigation consistency work APPROVED and ready for commit

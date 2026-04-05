@@ -9,7 +9,15 @@
 
 <PageTitle>Upload & Processing | The Executive Transcript</PageTitle>
 
-<main class="max-w-6xl mx-auto px-8 py-12">
+<div class="max-w-6xl mx-auto px-8 py-12">
+    <!-- Back Navigation -->
+    <div class="mb-8">
+        <NavLink href="/jobs" class="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-label">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Back to Archive
+        </NavLink>
+    </div>
+
     <!-- Hero Editorial Header -->
     <div class="mb-12">
         <h1 class="font-headline text-5xl font-extrabold tracking-tight text-primary mb-4">Ingest Intelligence.</h1>
@@ -168,7 +176,7 @@
         <div class="absolute top-[10%] left-[5%] w-96 h-96 bg-tertiary-container/10 blur-[120px] rounded-full"></div>
         <div class="absolute bottom-[20%] right-[10%] w-[500px] h-[500px] bg-secondary-container/5 blur-[150px] rounded-full"></div>
     </div>
-</main>
+</div>
 
 @code {
     private UploadModel uploadModel = new();

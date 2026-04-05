@@ -12,7 +12,7 @@
 
 <PageTitle>@(job?.FileName ?? "Job Detail") | The Executive Transcript</PageTitle>
 
-<main class="bg-surface min-h-screen">
+<div class="bg-surface min-h-screen">
     @if (isLoading)
     {
         <div class="flex items-center justify-center py-32">
@@ -285,7 +285,7 @@
             }
         </div>
     }
-</main>
+</div>
 
 @code {
     [Parameter]

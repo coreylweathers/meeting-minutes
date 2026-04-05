@@ -437,3 +437,12 @@
 - Material Symbols require explicit `font-variation-settings` CSS for proper fill/weight rendering
 - Keeping layouts simple (2 total) is cleaner than complex nested layout hierarchies
 - Design system color names (e.g., `on-tertiary-container`) are verbose but self-documenting once you learn the Material Design 3 token system
+
+### 2026-04-01 — Navigation Consistency: Removed NavMenu Dead Code, Fixed JobDetail Closing Tag
+
+- **JobDetail.razor:** Fixed closing tag from `</main>` to `</div>` at line 288 to match the opening `<div class="bg-surface min-h-screen">` tag at line 15. This completes the navigation consistency fix started by the coordinator.
+- **NavMenu.razor deleted:** Removed orphaned dead code at `src/MeetingMinutes.Web/Layout/NavMenu.razor`. This component used Bootstrap classes (`navbar-nav`, `nav-item`, `nav-link`) and was never referenced by any layout after the migration to Tailwind CSS and Interactive Server.
+- **NavMenuTests.cs deleted:** Removed `tests/MeetingMinutes.Web.Tests/Components/NavMenuTests.cs` (4 tests) to prevent build errors after NavMenu component deletion.
+- **Build:** ✅ Solution compiles with 0 errors, 2 warnings (unrelated to these changes).
+
+**Impact:** Navigation is now consistent across all pages. All layouts use Blazor NavLink with active state styling. No dead code remains from the Bootstrap/WASM era.

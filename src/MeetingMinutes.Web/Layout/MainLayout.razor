@@ -14,37 +14,29 @@
     </header>
 
     <!-- Left Sidebar Navigation -->
-    <aside class="hidden md:flex flex-col fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-slate-100 dark:bg-slate-900 py-6 px-4">
+    <aside class="hidden md:flex flex-col fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-surface-container-low border-r border-outline-variant py-6 px-4">
         <div class="mb-8 flex flex-col gap-2">
             <h2 class="font-headline font-black tracking-tighter text-primary text-2xl">The Curator</h2>
             <span class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Premium Intelligence</span>
         </div>
         
         <!-- Primary Action Button -->
-        <a href="/upload" class="mb-8 bg-primary text-on-primary py-3 px-4 rounded-md flex items-center justify-center gap-2 hover:opacity-90 transition-all font-medium">
+        <NavLink href="/upload" class="mb-8 bg-primary text-on-primary py-3 px-4 rounded-md flex items-center justify-center gap-2 hover:opacity-90 transition-all font-medium" Match="NavLinkMatch.All">
             <span class="material-symbols-outlined text-sm">add</span>
             <span>New Transcript</span>
-        </a>
+        </NavLink>
         
         <!-- Navigation Items -->
         <nav class="flex-1 flex flex-col gap-1">
-            <a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-all rounded-lg" href="/jobs">
+            <NavLink class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-all rounded-lg" href="/jobs" Match="NavLinkMatch.Prefix" ActiveClass="bg-surface-container text-primary font-semibold">
                 <span class="material-symbols-outlined">folder_open</span>
                 <span class="font-label">My Meetings</span>
-            </a>
-            <a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-all rounded-lg" href="/upload">
+            </NavLink>
+            <NavLink class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-all rounded-lg" href="/upload" Match="NavLinkMatch.All" ActiveClass="bg-surface-container text-primary font-semibold">
                 <span class="material-symbols-outlined">cloud_upload</span>
                 <span class="font-label">Upload</span>
-            </a>
+            </NavLink>
         </nav>
-        
-        <!-- Bottom Items -->
-        <div class="mt-auto pt-4 border-t border-outline-variant">
-            <a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container transition-all rounded-lg" href="#">
-                <span class="material-symbols-outlined">settings</span>
-                <span class="font-label">Settings</span>
-            </a>
-        </div>
     </aside>
 
     <!-- Main Content Area -->
