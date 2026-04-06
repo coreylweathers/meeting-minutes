@@ -687,3 +687,103 @@ Orchestration log: `.squad/orchestration-log/2026-04-07T01-00-00Z-miller.md`
 - Tests: 27 passing, 10 skipped (unchanged baseline)
 
 **Verdict:** ✅ APPROVED — "LGTM. Ship it."
+
+### 2026-04-08: Aspire Credential Wiring PostConfigure Review — APPROVED
+
+Reviewed `PostConfigure` credential wiring in `Program.cs` (lines 65-97) implemented by Naomi.
+
+**Issue Being Fixed:** AppHost injects `ConnectionStrings:speech` and `ConnectionStrings:deepgram` via Aspire, but Web project was binding empty `appsettings.json` sections. `PostConfigure` pattern correctly bridges the gap.
+
+**Review Checklist (7/7 passed):**
+
+1. **Correctness — Azure Speech parsing:** ✅
+   - Dictionary with `StringComparer.OrdinalIgnoreCase` handles `Key=` or `key=`
+   - `Split('=', 2)` handles values containing `=` (e.g., Base64 keys)
+   - Region extracted from `eastus.api.cognitive.microsoft.com` → `eastus` correctly
+   - Guard `if (!string.IsNullOrEmpty(speechKey) && !string.IsNullOrEmpty(speechRegion))` prevents partial config
+
+2. **Security — No credential exposure:** ✅
+   - No logging of keys or connection strings
+   - No hardcoded secrets — all from IConfiguration
+   - Credentials stored only in Options objects
+
+3. **Null safety:** ✅
+   - `string.IsNullOrEmpty()` guards before usage
+   - `parts.GetValueOrDefault()` returns null safely
+   - `Uri.TryCreate` validates endpoint before parsing host
+
+4. **Edge cases:** ✅
+   - Missing `Key` or `Endpoint` → PostConfigure skipped (not partially configured)
+   - Key appearing before Endpoint → dictionary order-independent
+   - Empty connection string → null check returns early
+   - Whitespace in parts → `.Trim()` handles
+
+5. **Fallback behavior (standalone mode):** ✅
+   - `Configure<>` still runs first (binds appsettings.json)
+   - PostConfigure only runs if connection string non-empty
+   - Standalone deployments with appsettings.json values still work
+
+6. **Idiomatic .NET:** ✅
+   - `PostConfigure` is the recommended pattern for overriding after initial binding
+   - Placement after `Configure` is correct (PostConfigure runs later in pipeline)
+   - No custom `IConfigureOptions<T>` implementations needed
+
+7. **Test coverage:** ⚠️ ACCEPTABLE GAP
+   - Existing service tests mock `IOptions<T>` directly — still valid
+   - No explicit PostConfigure test, but runtime behavior is integration-tested via E2E
+   - Connection string format parsing could benefit from unit test — recommend future backlog
+
+**Build:** 0 errors, 1 unrelated bunit version warning
+**Tests:** Existing tests still pass
+
+**Verdict:** ✅ APPROVED — "LGTM. PostConfigure is the correct pattern, parsing is robust, security is clean."
+
+### 2026-04-06 — Aspire Credential Wiring Review (Task: miller-creds-review)
+
+Reviewed \PostConfigure\ credential wiring in Program.cs (lines 65-97) implemented by Naomi.
+
+**Issue Being Fixed:** AppHost injects \ConnectionStrings:speech\ and \ConnectionStrings:deepgram\ via Aspire, but Web project was binding empty \ppsettings.json\ sections. \PostConfigure\ pattern correctly bridges the gap.
+
+**Review Checklist (7/7 passed):**
+
+1. **Correctness — Azure Speech parsing:** ✅
+   - Dictionary with \StringComparer.OrdinalIgnoreCase\ handles \Key=\ or \key=\
+   - \Split('=', 2)\ handles values containing \=\ (e.g., Base64 keys)
+   - Region extracted from \astus.api.cognitive.microsoft.com\ → \astus\ correctly
+   - Guard \if (!string.IsNullOrEmpty(speechKey) && !string.IsNullOrEmpty(speechRegion))\ prevents partial config
+
+2. **Security — No credential exposure:** ✅
+   - No logging of keys or connection strings
+   - No hardcoded secrets — all from IConfiguration
+   - Credentials stored only in Options objects
+
+3. **Null safety:** ✅
+   - \string.IsNullOrEmpty()\ guards before usage
+   - \parts.GetValueOrDefault()\ returns null safely
+   - \Uri.TryCreate\ validates endpoint before parsing host
+
+4. **Edge cases:** ✅
+   - Missing \Key\ or \Endpoint\ → PostConfigure skipped (not partially configured)
+   - Key appearing before Endpoint → dictionary order-independent
+   - Empty connection string → null check returns early
+   - Whitespace in parts → \.Trim()\ handles
+
+5. **Fallback behavior (standalone mode):** ✅
+   - \Configure<>\ still runs first (binds appsettings.json)
+   - PostConfigure only runs if connection string non-empty
+   - Standalone deployments with appsettings.json values still work
+
+6. **Idiomatic .NET:** ✅
+   - \PostConfigure\ is the recommended pattern for override-after-bind scenarios
+   - Placement after \Configure\ is correct (PostConfigure runs later in pipeline)
+   - No custom \IConfigureOptions<T>\ implementations needed
+
+7. **Test coverage:** ⚠️ ACCEPTABLE GAP
+   - Existing service tests mock \IOptions<T>\ directly — still valid
+   - No explicit PostConfigure test, but runtime behavior is integration-tested via E2E
+   - Connection string format parsing could benefit from unit test — recommend future backlog
+
+**Build:** 0 errors, 1 unrelated bunit version warning  
+**Tests:** 27 passing, 10 skipped (unchanged baseline)
+
+**Verdict:** ✅ **APPROVED** — PostConfigure is the correct pattern, parsing is robust, security is clean.

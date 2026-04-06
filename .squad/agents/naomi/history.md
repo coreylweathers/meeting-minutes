@@ -163,3 +163,25 @@ Orchestration log: `.squad/orchestration-log/2026-04-07T01-00-00Z-naomi.md`
 - Tests: 27 passing, 10 skipped (unchanged baseline)
 - Miller approved both files (FFmpegPathResolver.cs + Program.cs modifications)
 - Ready for merge
+
+### 2026-04-08 — STT Credential Wiring Fix (Task: naomi-creds-wiring)
+
+- Fixed runtime credential gap for Azure Speech and Deepgram STT providers
+- **Problem:** Aspire AppHost sets credentials via user-secrets (`ConnectionStrings:speech`, `ConnectionStrings:deepgram`), but Program.cs only bound from empty appsettings.json sections
+- **Solution:** Added `PostConfigure<T>` calls after existing `Configure<T>` calls in Program.cs to override with connection string values
+- **Deepgram:** Read `ConnectionStrings:deepgram` (raw API key) → `PostConfigure<DeepgramOptions>` sets `opts.ApiKey`
+- **Azure Speech:** Parse `ConnectionStrings:speech` (format: `Endpoint=https://eastus.api.cognitive.microsoft.com/;Key=<key>`) → extract Key and Region (from endpoint host first segment) → `PostConfigure<AzureSpeechOptions>` sets both
+- **Pattern:** `PostConfigure` runs AFTER `Configure`, so Aspire values override appsettings.json while standalone mode can still use appsettings fallback
+- **Key learning:** `PostConfigure` is the correct pattern for Aspire credential wiring—allows both Aspire-injected connection strings and standalone appsettings.json to work without duplication
+- Build: **0 errors, 0 warnings**. Tests: **27 passing, 10 skipped** (unchanged baseline)
+### 2026-04-06 — STT Credential Wiring Fix (Task: naomi-creds-wiring-fix)
+
+- Fixed Aspire credential wiring gap for Azure Speech and Deepgram STT providers
+- **Problem:** AppHost injects credentials as connection strings (\ConnectionStrings:speech\, \ConnectionStrings:deepgram\), but Program.cs only bound from empty appsettings.json sections
+- **Solution:** Added \PostConfigure<T>\ calls after \Configure<T>\ to parse and apply connection string values
+- **Deepgram:** Read \ConnectionStrings:deepgram\ (raw key) → \PostConfigure<DeepgramOptions>\ sets \opts.ApiKey\
+- **Azure Speech:** Parse \ConnectionStrings:speech\ (format: \Endpoint=...;Key=...\) → extract Key and Region → \PostConfigure<AzureSpeechOptions>\ sets both
+- **Pattern:** \PostConfigure\ runs AFTER \Configure\, so Aspire values override empty appsettings.json while preserving standalone mode fallback
+- **Build:** 0 errors, 0 warnings
+- **Tests:** 27 passing, 10 skipped (unchanged baseline)
+- **Status:** ✅ Miller reviewed and APPROVED

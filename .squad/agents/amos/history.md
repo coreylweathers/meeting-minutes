@@ -224,3 +224,42 @@ dotnet user-secrets set "ConnectionStrings:openai" "sk-<your-key>"
 - Aspire AppHost orchestration unaffected (separate launchSettings)
 - Fallback URL supports both Aspire discovery and direct standalone execution
 
+### FFMpeg Containerization (Completed)
+
+**Task:** Add ffmpeg support to container for audio extraction from videos
+
+**Status:** ✅ COMPLETED — Dockerfile created, README updated, build verified
+
+**Changes Made:**
+
+1. **Created src/MeetingMinutes.Web/Dockerfile**
+    - Multi-stage build: SDK 10.0 → ASP.NET 10.0 runtime
+    - Build stage: Restores full solution (src + tests), publishes Web project
+    - Runtime stage: Installs ffmpeg via apt-get, runs as non-root user `app`
+    - Copies solution files (MeetingMinutes.sln, global.json, Directory.Build.props)
+    - Port: 8080 (Aspire standard), ASPNETCORE_URLS=http://+:8080
+    - Security: Uses `--chown=app:app` during COPY, switches to app user
+
+2. **Updated README.md Prerequisites**
+    - Added ffmpeg as requirement with winget installation command
+    - Links to ffmpeg.org for cross-platform support
+    - Placed after Docker Desktop, before Azure subscription line
+
+3. **Docker Build Verification**
+    - ✅ Build succeeded: Image tag `meeting-minutes-web-test:latest` (1.17GB)
+    - ✅ All stages completed: Restore (85s), publish (23s), export (38s)
+    - ✅ ffmpeg installed and container layer created
+    - Note: Build optimized to include tests/ directory to satisfy solution references
+
+**Key Decisions:**
+
+- **Dockerfile location:** `src/MeetingMinutes.Web/Dockerfile` — Aspire + azd will use custom Dockerfile when present at project root instead of auto-generating
+- **Build context:** Repo root (C:\Code\projects\meeting-minutes) — all COPY paths relative to repo root
+- **Solution restoration:** Full solution restore required (build stage copies src/ + tests/) — FFMpegCore.dll transitive dependencies declared by Web project need resolution
+- **ffmpeg install method:** apt-get clean install in runtime stage — minimal layer, removes package lists to save space (~100MB savings vs keeping lists)
+- **Non-root user:** `app` user mandatory for Container Apps security posture — azd deployment requires least-privilege container execution
+
+**Azure Deployment Impact:**
+- `azd up` will use this custom Dockerfile instead of generating one
+- ffmpeg binary automatically available in Container Apps container
+- No additional infrastructure resource needed (embedded in container image)

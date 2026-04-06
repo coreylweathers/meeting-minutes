@@ -62,6 +62,40 @@ builder.Services.AddSingleton<IFFmpegHelper, FFmpegHelper>();
 builder.Services.Configure<AzureSpeechOptions>(builder.Configuration.GetSection("AzureSpeech"));
 builder.Services.Configure<DeepgramOptions>(builder.Configuration.GetSection("Deepgram"));
 
+// Aspire credential wiring — PostConfigure overrides appsettings.json with ConnectionStrings values
+var deepgramKey = builder.Configuration.GetConnectionString("deepgram");
+if (!string.IsNullOrEmpty(deepgramKey))
+{
+    builder.Services.PostConfigure<DeepgramOptions>(opts =>
+    {
+        opts.ApiKey = deepgramKey;
+    });
+}
+
+var speechConnStr = builder.Configuration.GetConnectionString("speech");
+if (!string.IsNullOrEmpty(speechConnStr))
+{
+    var parts = speechConnStr.Split(';', StringSplitOptions.RemoveEmptyEntries)
+        .Select(p => p.Split('=', 2))
+        .Where(p => p.Length == 2)
+        .ToDictionary(p => p[0].Trim(), p => p[1].Trim(), StringComparer.OrdinalIgnoreCase);
+
+    var speechKey = parts.GetValueOrDefault("Key");
+    var endpoint = parts.GetValueOrDefault("Endpoint");
+    var speechRegion = string.Empty;
+    if (!string.IsNullOrEmpty(endpoint) && Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri))
+        speechRegion = endpointUri.Host.Split('.')[0];
+
+    if (!string.IsNullOrEmpty(speechKey) && !string.IsNullOrEmpty(speechRegion))
+    {
+        builder.Services.PostConfigure<AzureSpeechOptions>(opts =>
+        {
+            opts.Key = speechKey;
+            opts.Region = speechRegion;
+        });
+    }
+}
+
 // Keyed service registrations (concrete providers)
 builder.Services.AddKeyedSingleton<ISpeechTranscriptionService, AzureSpeechTranscriptionService>("azure");
 builder.Services.AddKeyedSingleton<ISpeechTranscriptionService, DeepgramTranscriptionService>("deepgram");

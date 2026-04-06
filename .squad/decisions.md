@@ -216,3 +216,49 @@
 
 ---
 
+
+### Decision 12: PostConfigure Pattern for Aspire Credential Wiring
+
+**Author:** Naomi (Backend Engineer)  
+**Status:** ✅ IMPLEMENTED  
+**Date:** 2026-04-06
+
+## Summary
+
+Use `PostConfigure<TOptions>` to wire Aspire-injected connection strings into existing Options classes, enabling both Aspire and standalone deployment modes without code duplication.
+
+## Context
+
+Azure Speech and Deepgram STT providers failed at runtime despite AppHost having correct user-secrets configured:
+- `ConnectionStrings:speech` = `Endpoint=https://eastus.api.cognitive.microsoft.com/;Key=<key>`
+- `ConnectionStrings:deepgram` = `<raw-api-key>`
+
+Program.cs bound options from appsettings.json sections (empty values), but never consumed the Aspire-injected connection strings.
+
+## Decision
+
+Added `PostConfigure<TOptions>` calls in Program.cs immediately after existing `Configure<TOptions>` calls:
+
+1. **Deepgram**: Read `ConnectionStrings:deepgram` → if non-empty, `PostConfigure<DeepgramOptions>` sets `opts.ApiKey`
+2. **Azure Speech**: Parse `ConnectionStrings:speech` → extract `Key` and `Region` (from endpoint host first segment) → if both present, `PostConfigure<AzureSpeechOptions>` sets both
+
+## Rationale
+
+- **Ordering matters:** `PostConfigure` runs AFTER `Configure`, so Aspire values override empty appsettings.json values
+- **Dual-mode support:** Standalone deployments can still use appsettings.json; Aspire deployments use connection strings
+- **Idiomatic .NET pattern:** `PostConfigure` is the recommended way to override options after initial binding
+- **No duplication:** Keeps credential wiring inline in Program.cs without custom `IConfigureOptions<T>` implementations
+
+## Verification
+
+- Build: **0 errors, 0 warnings**
+- Tests: **27 passing, 10 skipped** (no regressions)
+
+## Scope
+
+**File modified:** `src/MeetingMinutes.Web/Program.cs` (lines 65-97)
+
+## Related
+
+- Decision 2: Interactive Server Migration (established Aspire service discovery pattern)
+- Decision 6: OpenAI SDK v2.2.0 (similar connection string wiring for API key)
