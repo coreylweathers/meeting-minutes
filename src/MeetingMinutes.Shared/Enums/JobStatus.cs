@@ -21,6 +21,7 @@ public enum JobStatus
     Pending,
     ExtractingAudio,
     Transcribing,
+    Transcribed,   // transcription done, awaiting user action
     Summarizing,
     Completed,
     Failed

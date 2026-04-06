@@ -19,7 +19,6 @@ using MeetingMinutes.Web.Services;
 using MeetingMinutes.Shared.Enums;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using System.Text.Json;
 
 namespace MeetingMinutes.Web.Workers;
 
@@ -33,7 +32,6 @@ public class JobWorker : BackgroundService
 
     private readonly Meter _meter = new("MeetingMinutes.JobWorker");
     private readonly Counter<long> _jobsStarted;
-    private readonly Counter<long> _jobsCompleted;
     private readonly Counter<long> _jobsFailed;
 
     public JobWorker(
@@ -46,7 +44,6 @@ public class JobWorker : BackgroundService
         _blobServiceClient = blobServiceClient;
 
         _jobsStarted = _meter.CreateCounter<long>("jobs_started", description: "Number of jobs started");
-        _jobsCompleted = _meter.CreateCounter<long>("jobs_completed", description: "Number of jobs completed");
         _jobsFailed = _meter.CreateCounter<long>("jobs_failed", description: "Number of jobs failed");
     }
 
@@ -84,9 +81,8 @@ public class JobWorker : BackgroundService
             var blobService = scope.ServiceProvider.GetRequiredService<IBlobStorageService>();
             var ffmpeg = scope.ServiceProvider.GetRequiredService<IFFmpegHelper>();
             var speech = scope.ServiceProvider.GetRequiredService<ISpeechTranscriptionService>();
-            var summarizer = scope.ServiceProvider.GetRequiredService<ISummarizationService>();
 
-            await ProcessJobAsync(job.JobId, jobService, blobService, ffmpeg, speech, summarizer, ct);
+            await ProcessJobAsync(job.JobId, jobService, blobService, ffmpeg, speech, ct);
         }
     }
 
@@ -96,7 +92,6 @@ public class JobWorker : BackgroundService
         IBlobStorageService blobService,
         IFFmpegHelper ffmpeg,
         ISpeechTranscriptionService speech,
-        ISummarizationService summarizer,
         CancellationToken ct)
     {
         using var activity = ActivitySource.StartActivity("ProcessJob");
@@ -152,27 +147,14 @@ public class JobWorker : BackgroundService
             job.TranscriptBlobUri = transcriptBlobUri;
             await jobService.UpdateJobAsync(job, ct);
 
-            // 7. Update status → Summarizing
-            _logger.LogInformation("Job {JobId}: Summarizing transcript", jobId);
-            await jobService.UpdateStatusAsync(jobId, JobStatus.Summarizing, ct: ct);
-
-            // 8. Summarize transcript via SummarizationService
-            var summaryDto = await summarizer.SummarizeAsync(transcriptResult.Text, ct);
-
-            // 9. Serialize SummaryDto to JSON, store in blob
-            var summaryJson = JsonSerializer.Serialize(summaryDto, new JsonSerializerOptions { WriteIndented = true });
-            var summaryBlobUri = await UploadToContainerAsync("summaries", $"{jobId}.json", summaryJson, ct);
-
-            job.SummaryBlobUri = summaryBlobUri;
-            await jobService.UpdateJobAsync(job, ct);
-
-            // 10. Update status → Completed
-            await jobService.UpdateStatusAsync(jobId, JobStatus.Completed, ct: ct);
+            // 7. Transcription complete — await user action
+            _logger.LogInformation("Job {JobId}: Transcription complete, awaiting user action", jobId);
+            await jobService.UpdateStatusAsync(jobId, JobStatus.Transcribed, ct: ct);
 
             sw.Stop();
-            activity?.SetTag("job.status", "completed");
-            _jobsCompleted.Add(1);
-            _logger.LogInformation("Job {JobId} completed successfully in {ElapsedMs}ms", jobId, sw.ElapsedMilliseconds);
+            activity?.SetTag("job.status", "transcribed");
+            _logger.LogInformation("Job {JobId} transcribed in {ElapsedMs}ms — awaiting user action", jobId, sw.ElapsedMilliseconds);
+            return;
         }
         catch (Exception ex)
         {
@@ -205,16 +187,5 @@ public class JobWorker : BackgroundService
             .GetBlobContainerClient(uriBuilder.BlobContainerName)
             .GetBlobClient(uriBuilder.BlobName);
         await blob.DownloadToAsync(destinationPath, ct);
-    }
-
-    private async Task<string> UploadToContainerAsync(string containerName, string blobName, string content, CancellationToken ct)
-    {
-        var container = _blobServiceClient.GetBlobContainerClient(containerName);
-        await container.CreateIfNotExistsAsync(cancellationToken: ct);
-
-        var blob = container.GetBlobClient(blobName);
-        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content));
-        await blob.UploadAsync(stream, overwrite: true, cancellationToken: ct);
-        return blob.Uri.ToString();
     }
 }

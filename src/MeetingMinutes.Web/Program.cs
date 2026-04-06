@@ -227,6 +227,70 @@ jobs.MapPut("/{id}/summary", async (
     return Results.NoContent();
 });
 
+// POST /api/jobs/{id}/summarize — user chose AI summarization
+jobs.MapPost("/{id}/summarize", async (
+    string id,
+    IJobMetadataService jobMetadata,
+    IBlobStorageService blobStorage,
+    ISummarizationService summarizer,
+    ILogger<Program> logger,
+    CancellationToken ct) =>
+{
+    var job = await jobMetadata.GetJobAsync(id, ct);
+    if (job is null) return Results.NotFound();
+    if (job.Status != JobStatus.Transcribed.ToString())
+        return Results.BadRequest(new { error = "Job is not in Transcribed state" });
+    if (string.IsNullOrEmpty(job.TranscriptBlobUri))
+        return Results.BadRequest(new { error = "No transcript available" });
+
+    await jobMetadata.UpdateStatusAsync(id, JobStatus.Summarizing, ct: ct);
+
+    try
+    {
+        var transcriptText = await blobStorage.DownloadTextAsync(job.TranscriptBlobUri, ct);
+        if (string.IsNullOrEmpty(transcriptText))
+            return Results.Problem("Transcript text could not be read");
+
+        var summaryDto = await summarizer.SummarizeAsync(transcriptText, ct);
+        var summaryJson = JsonSerializer.Serialize(summaryDto, new JsonSerializerOptions { WriteIndented = true });
+        var summaryBlobUri = await blobStorage.UploadSummaryAsync(summaryJson, $"{id}.json", ct);
+
+        job = await jobMetadata.GetJobAsync(id, ct);
+        if (job is not null)
+        {
+            job.SummaryBlobUri = summaryBlobUri;
+            await jobMetadata.UpdateJobAsync(job, ct);
+        }
+
+        await jobMetadata.UpdateStatusAsync(id, JobStatus.Completed, ct: ct);
+        logger.LogInformation("Job {JobId} summarized and completed via user action", id);
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Summarization failed for job {JobId}", id);
+        await jobMetadata.UpdateStatusAsync(id, JobStatus.Failed, ex.Message, ct);
+        return Results.Problem(ex.Message);
+    }
+});
+
+// POST /api/jobs/{id}/complete — user chose transcript-only (no AI)
+jobs.MapPost("/{id}/complete", async (
+    string id,
+    IJobMetadataService jobMetadata,
+    ILogger<Program> logger,
+    CancellationToken ct) =>
+{
+    var job = await jobMetadata.GetJobAsync(id, ct);
+    if (job is null) return Results.NotFound();
+    if (job.Status != JobStatus.Transcribed.ToString())
+        return Results.BadRequest(new { error = "Job is not in Transcribed state" });
+
+    await jobMetadata.UpdateStatusAsync(id, JobStatus.Completed, ct: ct);
+    logger.LogInformation("Job {JobId} completed as transcript-only via user action", id);
+    return Results.NoContent();
+});
+
 static JobDto MapToJobDto(ProcessingJob job) => new(
     job.JobId, job.FileName, Enum.Parse<JobStatus>(job.Status),
     job.BlobUri, job.TranscriptBlobUri, job.SummaryBlobUri,

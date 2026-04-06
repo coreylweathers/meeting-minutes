@@ -787,3 +787,92 @@ Reviewed \PostConfigure\ credential wiring in Program.cs (lines 65-97) implement
 **Tests:** 27 passing, 10 skipped (unchanged baseline)
 
 **Verdict:** ✅ **APPROVED** — PostConfigure is the correct pattern, parsing is robust, security is clean.
+
+---
+
+## Review: Transcript Review Gate Feature
+
+**Date:** 2026-04-09  
+**Requested by:** Corey Weathers  
+**Author:** Amos (DevOps)  
+
+### Files Reviewed
+
+1. `src/MeetingMinutes.Shared/Enums/JobStatus.cs`
+2. `src/MeetingMinutes.Web/Services/IBlobStorageService.cs`
+3. `src/MeetingMinutes.Web/Services/BlobStorageService.cs`
+4. `src/MeetingMinutes.Web/Workers/JobWorker.cs`
+5. `src/MeetingMinutes.Web/Program.cs`
+6. `src/MeetingMinutes.Web/Pages/JobDetail.razor`
+7. `src/MeetingMinutes.Web/App.razor`
+
+### Correctness Checklist
+
+1. **Enum order:** ✅ `Transcribed` (value 3) is correctly placed between `Transcribing` (2) and `Summarizing` (4) — no range check breakage.
+
+2. **JobWorker stops at Transcribed:** ✅ `ProcessJobAsync` ends at step 7 with `UpdateStatusAsync(jobId, JobStatus.Transcribed)` and returns. No summarization in worker.
+
+3. **Metrics counters:** ⚠️ MINOR — `_jobsCompleted` is declared (line 35-36) but never used after refactor (summarization moved out of worker). `_jobsStarted` and `_jobsFailed` remain correctly used. This is a dead code smell, not a bug.
+
+4. **ISummarizationService in JobWorker:** ✅ Correctly removed — not referenced.
+
+5. **UploadSummaryAsync container:** ✅ Uses `SummariesContainer = "summaries"` (line 28, 58) — correct.
+
+6. **REST endpoint status validation:** ✅ Both `/summarize` and `/complete` endpoints check `job.Status != JobStatus.Transcribed.ToString()` and return BadRequest if not.
+
+7. **JobDetail.razor LoadJob():** ✅ Handles all three terminal states:
+   - `Transcribed` → StopPolling + LoadTranscript
+   - `Completed` → StopPolling + LoadTranscript + LoadSummary
+   - `Failed` → StopPolling (implicitly via `IsProcessing()` returning false)
+
+8. **OnPollTick():** ✅ Handles `Transcribed` correctly (lines 458-462).
+
+9. **IsProcessing():** ✅ Does NOT include `Transcribed` — correctly treats it as a user-waiting state.
+
+10. **Status badges:** ✅ Correct:
+    - `Completed` → "Completed"
+    - `Transcribed` → "Ready to Review"
+    - `Failed` → "Error"
+    - else → "Processing"
+
+### Security & Null-Safety
+
+1. **Null checks in REST endpoints:** ✅ Both `/summarize` and `/complete` check `job is null` and return NotFound.
+
+2. **TranscriptBlobUri null check in SummarizeJob():** ✅ Checked before use: `string.IsNullOrEmpty(job.TranscriptBlobUri)` returns BadRequest.
+
+3. **SummarizeJob() stuck in Summarizing:** ✅ Has try/catch that sets `Failed` status on exception (line 272).
+
+4. **JS downloadTextAsFile XSS:** ✅ Safe — uses `Blob([content])` which does not interpret content as HTML. Content is written as `text/plain` and downloaded as file, not rendered in DOM.
+
+5. **JobDetail.razor SummarizeJob() error handling:** ✅ Has try/catch that sets `Failed` status (line 566).
+
+### Idiomatic .NET
+
+1. **Async methods awaited:** ✅ All async calls properly awaited.
+
+2. **CancellationToken threading:** ⚠️ MINOR — REST endpoints pass `ct` correctly; JobDetail.razor direct service calls do NOT pass `CancellationToken`. This is acceptable for Blazor UI actions but could be improved.
+
+3. **UploadSummaryAsync pattern:** ✅ Follows exact same pattern as `UploadTextAsync`.
+
+4. **System.Text.Json using:** ✅ Not needed in JobWorker.cs — no JSON serialization there. Program.cs correctly has it.
+
+### Test Coverage Gaps (flag for Bobbie)
+
+- POST `/api/jobs/{id}/summarize` endpoint needs integration test
+- POST `/api/jobs/{id}/complete` endpoint needs integration test
+- JobDetail.razor `SummarizeJob()` and `CompleteJob()` methods (component tests)
+- `Transcribed` state transitions in JobWorker
+
+### Minor Issues (not blocking)
+
+1. **Dead counter:** `_jobsCompleted` in JobWorker is declared but never incremented — recommend removal in future cleanup.
+
+2. **SaveSummary() uploads to wrong container:** Line 651 uses `UploadTextAsync` (transcripts container) instead of `UploadSummaryAsync` (summaries container) for edited summaries. **This is a bug** — edited summary goes to transcripts, not summaries. 
+   - **Impact:** Low — summary still overwrites existing blob via same blob name, and SummaryBlobUri already points to correct location.
+   - **Recommend:** Change to `UploadSummaryAsync` in future cleanup.
+
+**Build:** 0 errors, 1 unrelated bunit version warning  
+**Tests:** 27 passing, 10 skipped (unchanged baseline)
+
+**Verdict:** ✅ **LGTM — APPROVED** with minor notes above.

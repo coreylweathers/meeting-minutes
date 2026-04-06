@@ -1,0 +1,20 @@
+feat: transcript review gate — pause pipeline after transcription
+
+Add Transcribed status so the pipeline pauses after transcription
+and lets the user choose what to do next:
+- Summarize with AI (calls OpenAI, sets Completed)
+- Download Transcript (JS blob download, no status change)
+- Complete Job (marks Completed without AI summary)
+
+Changes:
+- JobStatus: add Transcribed between Transcribing and Summarizing
+- JobWorker: stop at Transcribed; remove summarizer dependency
+- IBlobStorageService: add UploadSummaryAsync (summaries container)
+- BlobStorageService: implement UploadSummaryAsync
+- Program.cs: add POST /api/jobs/{id}/summarize and /complete
+- JobDetail.razor: action panel, scroll, service calls, new status badge
+- App.razor: downloadTextAsFile JS interop
+
+Reviewed and approved by Miller.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

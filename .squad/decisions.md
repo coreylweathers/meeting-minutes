@@ -262,3 +262,85 @@ Added `PostConfigure<TOptions>` calls in Program.cs immediately after existing `
 
 - Decision 2: Interactive Server Migration (established Aspire service discovery pattern)
 - Decision 6: OpenAI SDK v2.2.0 (similar connection string wiring for API key)
+
+---
+
+## 2026-04-09: Transcript Review Gate Implementation
+
+### Decision 13: Pipeline Pause at Transcribed Status
+
+**Author:** Amos (Implementer), Corey Weathers (Requestor)  
+**Status:** ✅ APPROVED & IMPLEMENTED  
+**Date:** 2026-04-09
+
+### Summary
+
+Pipeline now pauses at `Transcribed` status, giving users control over AI summarization. Three actions available:
+1. **Summarize with AI** — calls OpenAI, marks job Completed
+2. **Download Transcript** — client-side blob download, no status change
+3. **Complete Job** — marks Completed without AI summary
+
+### Rationale
+
+- User-requested feature to reduce AI summarization costs
+- Gives transparency and control over job processing
+- Blazor component calls services directly (no redundant HTTP round-trip); REST endpoints available for external callers
+
+### Implementation Details
+
+**Schema Change:**
+- `JobStatus` enum: added `Transcribed` between `Transcribing` and `Summarizing`
+
+**Backend (Program.cs):**
+- POST `/api/jobs/{id}/summarize` — AI summarization endpoint
+- POST `/api/jobs/{id}/complete` — mark completed without summary
+- Both validate `job.Status == Transcribed` before proceeding
+
+**Services:**
+- `IBlobStorageService.UploadSummaryAsync()` — new method for summaries container
+- `BlobStorageService` — implementation with summaries container upload
+- `JobWorker` — stops at `Transcribed`, removed `ISummarizationService` dependency
+
+**UI (JobDetail.razor):**
+- Action panel with three buttons (Summarize, Download, Complete)
+- Transcript display
+- Direct service calls from Blazor component
+- Proper terminal state handling
+
+**JS Interop (App.razor):**
+- `downloadTextAsFile()` function for blob download (XSS-safe)
+
+### Files Modified
+
+- `src/MeetingMinutes.Shared/Enums/JobStatus.cs`
+- `src/MeetingMinutes.Web/Services/IBlobStorageService.cs`
+- `src/MeetingMinutes.Web/Services/BlobStorageService.cs`
+- `src/MeetingMinutes.Web/Workers/JobWorker.cs`
+- `src/MeetingMinutes.Web/Program.cs`
+- `src/MeetingMinutes.Web/Pages/JobDetail.razor`
+- `src/MeetingMinutes.Web/App.razor`
+
+### Review & Verification
+
+**Reviewer:** Miller  
+**Status:** ✅ APPROVED
+
+**Key Verifications:**
+1. ✅ `Transcribed` enum correctly ordered
+2. ✅ JobWorker stops at `Transcribed`, no longer references `ISummarizationService`
+3. ✅ REST endpoints validate `job.Status == Transcribed` before proceeding
+4. ✅ JobDetail.razor handles all terminal states correctly
+5. ✅ Error handling sets `Failed` status on exception
+6. ✅ No XSS risk in JS download function
+7. ✅ Build passes (0 errors)
+
+**Minor Notes (non-blocking):**
+- `_jobsCompleted` counter in JobWorker was unused — removed by coordinator
+- SaveSummary() uses `UploadTextAsync` instead of `UploadSummaryAsync` — noted for follow-up
+
+### Scope & Impact
+
+- **Lines changed:** ~150
+- **Behavioral change:** Pipeline now pauses after transcription for user decision
+- **Breaking change:** None (new status, backward compatible)
+- **API changes:** Two new POST endpoints (backward compatible)

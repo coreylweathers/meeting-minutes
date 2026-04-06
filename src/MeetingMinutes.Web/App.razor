@@ -111,6 +111,19 @@
 </head>
 <body class="bg-background text-on-surface font-body">
     <Routes @rendermode="InteractiveServer" />
+    <script>
+        window.downloadTextAsFile = function (fileName, content) {
+            var blob = new Blob([content], { type: 'text/plain' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+    </script>
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>

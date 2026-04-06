@@ -263,3 +263,42 @@ dotnet user-secrets set "ConnectionStrings:openai" "sk-<your-key>"
 - `azd up` will use this custom Dockerfile instead of generating one
 - ffmpeg binary automatically available in Container Apps container
 - No additional infrastructure resource needed (embedded in container image)
+
+### Transcript Review Gate Implementation (Completed)
+
+**Task:** Implement user-driven gate after transcription — user chooses whether to run AI summarization
+
+**Status:** ✅ COMPLETED — Enum, services, worker, endpoints, and UI updated; build passes
+
+**Changes Made:**
+
+1. **JobStatus.cs**: Added `Transcribed` enum value between `Transcribing` and `Summarizing`
+2. **IBlobStorageService.cs**: Added `UploadSummaryAsync` method signature
+3. **BlobStorageService.cs**: Implemented `UploadSummaryAsync` for "summaries" container (mirrors `UploadTextAsync`)
+4. **JobWorker.cs**: 
+   - Worker now stops at `Transcribed` status after transcription completes
+   - Removed automatic summarization steps (7–10)
+   - Removed `ISummarizationService` parameter from `ProcessJobAsync`
+   - Removed `UploadToContainerAsync` helper method
+   - Removed `using System.Text.Json` (no longer needed)
+5. **Program.cs**: Added two new REST endpoints:
+   - `POST /api/jobs/{id}/summarize` — runs summarization and completes job
+   - `POST /api/jobs/{id}/complete` — marks job complete without AI
+6. **JobDetail.razor**: 
+   - Added `@inject ISummarizationService Summarizer`
+   - Added "Ready to Review" status badge for `Transcribed` state
+   - Added action panel with three buttons: "Summarize with AI", "Download Transcript", "Complete Job"
+   - Updated polling logic to stop at `Transcribed` and load transcript
+   - Added three new methods: `SummarizeJob()`, `CompleteJob()`, `DownloadTranscript()`
+   - Made transcript scrollable (max-h-[600px] overflow-y-auto)
+7. **App.razor**: Added `downloadTextAsFile` JavaScript interop function
+
+**Build Verification:**
+- ✅ Solution builds successfully (0 errors, 2 warnings unrelated to changes, 29.3s)
+- ✅ All 6 projects compile
+
+**Architecture Impact:**
+- Pipeline now pauses at `Transcribed` — user drives next action from UI
+- Blazor component calls services directly (no HTTP round-trip overhead)
+- REST endpoints available for external callers (API clients, automation)
+- "summaries" container separate from "transcripts" container for logical separation

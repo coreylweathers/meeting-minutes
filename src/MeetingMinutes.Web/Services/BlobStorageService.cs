@@ -25,6 +25,7 @@ public sealed class BlobStorageService(BlobServiceClient blobServiceClient, ILog
 {
     private const string VideosContainer = "videos";
     private const string TranscriptsContainer = "transcripts";
+    private const string SummariesContainer = "summaries";
 
     public async Task<string> UploadVideoAsync(Stream stream, string fileName, CancellationToken ct = default)
     {
@@ -48,6 +49,19 @@ public sealed class BlobStorageService(BlobServiceClient blobServiceClient, ILog
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
         await blob.UploadAsync(stream, overwrite: true, cancellationToken: ct);
         logger.LogInformation("Text blob {BlobName} uploaded ({Size} bytes)", blobName, content.Length);
+        return blob.Uri.ToString();
+    }
+
+    public async Task<string> UploadSummaryAsync(string content, string blobName, CancellationToken ct = default)
+    {
+        logger.LogInformation("Uploading summary blob {BlobName} to container {Container}", blobName, SummariesContainer);
+        var container = blobServiceClient.GetBlobContainerClient(SummariesContainer);
+        await container.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: ct);
+
+        var blob = container.GetBlobClient(blobName);
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+        await blob.UploadAsync(stream, overwrite: true, cancellationToken: ct);
+        logger.LogInformation("Summary blob {BlobName} uploaded ({Size} bytes)", blobName, content.Length);
         return blob.Uri.ToString();
     }
 
