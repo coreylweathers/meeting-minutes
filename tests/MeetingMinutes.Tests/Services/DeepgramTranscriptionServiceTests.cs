@@ -24,34 +24,34 @@ using FluentAssertions;
 
 namespace MeetingMinutes.Tests.Services;
 
-public class AzureSpeechTranscriptionServiceTests
+public class DeepgramTranscriptionServiceTests
 {
-    private readonly Mock<ILogger<AzureSpeechTranscriptionService>> _mockLogger;
+    private readonly Mock<ILogger<DeepgramTranscriptionService>> _mockLogger;
 
-    public AzureSpeechTranscriptionServiceTests()
+    public DeepgramTranscriptionServiceTests()
     {
-        _mockLogger = new Mock<ILogger<AzureSpeechTranscriptionService>>();
+        _mockLogger = new Mock<ILogger<DeepgramTranscriptionService>>();
     }
 
     [Fact]
-    public void Constructor_ShouldInitialize_WithValidConfiguration()
+    public void Constructor_ShouldInitialize_WithValidApiKey()
     {
         // Arrange
-        var options = Options.Create(new AzureSpeechOptions { Key = "test-key", Region = "eastus" });
+        var options = Options.Create(new DeepgramOptions { ApiKey = "test-api-key" });
 
         // Act
-        var service = new AzureSpeechTranscriptionService(options, _mockLogger.Object);
+        var service = new DeepgramTranscriptionService(options, _mockLogger.Object);
 
         // Assert
         service.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task TranscribeAsync_ShouldThrow_WhenCredentialsNotConfigured()
+    public async Task TranscribeAsync_ShouldThrow_WhenApiKeyIsEmpty()
     {
         // Arrange
-        var options = Options.Create(new AzureSpeechOptions { Key = "", Region = "" });
-        var service = new AzureSpeechTranscriptionService(options, _mockLogger.Object);
+        var options = Options.Create(new DeepgramOptions { ApiKey = "" });
+        var service = new DeepgramTranscriptionService(options, _mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -59,23 +59,11 @@ public class AzureSpeechTranscriptionServiceTests
     }
 
     [Fact]
-    public async Task TranscribeAsync_ShouldThrow_WhenOnlyKeyIsMissing()
+    public async Task TranscribeAsync_ShouldThrow_WhenApiKeyIsNull()
     {
         // Arrange
-        var options = Options.Create(new AzureSpeechOptions { Key = "", Region = "eastus" });
-        var service = new AzureSpeechTranscriptionService(options, _mockLogger.Object);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await service.TranscribeAsync("test-audio.wav", CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task TranscribeAsync_ShouldThrow_WhenOnlyRegionIsMissing()
-    {
-        // Arrange
-        var options = Options.Create(new AzureSpeechOptions { Key = "test-key", Region = "" });
-        var service = new AzureSpeechTranscriptionService(options, _mockLogger.Object);
+        var options = Options.Create(new DeepgramOptions { ApiKey = null! });
+        var service = new DeepgramTranscriptionService(options, _mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -83,20 +71,19 @@ public class AzureSpeechTranscriptionServiceTests
     }
 
     [Trait("Category", "Integration")]
-    [Fact(Skip = "Requires Azure Speech SDK and valid credentials")]
+    [Fact(Skip = "Requires Deepgram API key and a real audio file")]
     public async Task TranscribeAsync_ShouldReturnTranscript_WithValidAudioFile()
     {
         // This test requires:
-        // 1. Valid Azure Speech credentials
-        // 2. A real .wav audio file
-        // 3. Azure Speech SDK to be fully functional
+        // 1. Valid Deepgram API key
+        // 2. A real audio file
         //
         // Mark as Integration test and skip by default
         // Run with: dotnet test --filter Category=Integration
 
         // Arrange
-        var options = Options.Create(new AzureSpeechOptions { Key = "real-key", Region = "eastus" });
-        var service = new AzureSpeechTranscriptionService(options, _mockLogger.Object);
+        var options = Options.Create(new DeepgramOptions { ApiKey = "real-api-key" });
+        var service = new DeepgramTranscriptionService(options, _mockLogger.Object);
 
         // Act
         var result = await service.TranscribeAsync("path/to/real/audio.wav", CancellationToken.None);

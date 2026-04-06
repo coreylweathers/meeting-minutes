@@ -14,11 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-using MeetingMinutes.Shared.Models;
+namespace MeetingMinutes.Shared.Enums;
 
-namespace MeetingMinutes.Web.Services;
-
-public interface ISpeechTranscriptionService
+public enum SpeechProvider
 {
-    Task<TranscriptResult> TranscribeAsync(string audioFilePath, CancellationToken ct = default);
+    AzureSpeech,
+    Deepgram
 }

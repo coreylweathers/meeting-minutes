@@ -14,11 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-using MeetingMinutes.Shared.Models;
+using MeetingMinutes.Shared.Enums;
 
 namespace MeetingMinutes.Web.Services;
 
-public interface ISpeechTranscriptionService
+public interface ITranscriptionSettingsService
 {
-    Task<TranscriptResult> TranscribeAsync(string audioFilePath, CancellationToken ct = default);
+    Task<SpeechProvider> GetProviderAsync(CancellationToken ct = default);
+    Task SetProviderAsync(SpeechProvider provider, CancellationToken ct = default);
 }

@@ -14,11 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-using MeetingMinutes.Shared.Models;
+namespace MeetingMinutes.Web.Options;
 
-namespace MeetingMinutes.Web.Services;
-
-public interface ISpeechTranscriptionService
+public sealed class AzureSpeechOptions
 {
-    Task<TranscriptResult> TranscribeAsync(string audioFilePath, CancellationToken ct = default);
+    public string Key { get; set; } = string.Empty;
+    public string Region { get; set; } = string.Empty;
 }

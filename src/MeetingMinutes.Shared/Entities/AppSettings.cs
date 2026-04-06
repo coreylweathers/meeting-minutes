@@ -14,11 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-using MeetingMinutes.Shared.Models;
+using Azure;
+using Azure.Data.Tables;
 
-namespace MeetingMinutes.Web.Services;
+namespace MeetingMinutes.Shared.Entities;
 
-public interface ISpeechTranscriptionService
+public class AppSettings : ITableEntity
 {
-    Task<TranscriptResult> TranscribeAsync(string audioFilePath, CancellationToken ct = default);
+    public string PartitionKey { get; set; } = "settings";
+    public string RowKey { get; set; } = "transcription";
+    public DateTimeOffset? Timestamp { get; set; }
+    public ETag ETag { get; set; }
+
+    public string TranscriptionProvider { get; set; } = string.Empty;
 }

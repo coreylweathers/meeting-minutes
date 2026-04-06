@@ -16,6 +16,7 @@
 
 using MeetingMinutes.Web;
 using MeetingMinutes.Web.Components;
+using MeetingMinutes.Web.Options;
 using MeetingMinutes.Web.Services;
 using MeetingMinutes.Web.Workers;
 using OpenAI;
@@ -49,8 +50,21 @@ builder.Services.AddAntiforgery();
 builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
 builder.Services.AddSingleton<IJobMetadataService, JobMetadataService>();
 builder.Services.AddSingleton<ISummarizationService, SummarizationService>();
-builder.Services.AddSingleton<ISpeechTranscriptionService, SpeechTranscriptionService>();
 builder.Services.AddSingleton<IFFmpegHelper, FFmpegHelper>();
+
+// Options binding
+builder.Services.Configure<AzureSpeechOptions>(builder.Configuration.GetSection("AzureSpeech"));
+builder.Services.Configure<DeepgramOptions>(builder.Configuration.GetSection("Deepgram"));
+
+// Keyed service registrations (concrete providers)
+builder.Services.AddKeyedSingleton<ISpeechTranscriptionService, AzureSpeechTranscriptionService>("azure");
+builder.Services.AddKeyedSingleton<ISpeechTranscriptionService, DeepgramTranscriptionService>("deepgram");
+
+// Settings service
+builder.Services.AddSingleton<ITranscriptionSettingsService, TranscriptionSettingsService>();
+
+// Primary registration — delegates to active provider via RoutingTranscriptionService
+builder.Services.AddSingleton<ISpeechTranscriptionService, RoutingTranscriptionService>();
 
 // Background job processor
 builder.Services.AddHostedService<JobWorker>();

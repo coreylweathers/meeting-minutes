@@ -633,6 +633,216 @@ The navigation consistency fix is correct and improves the codebase. All NavLink
 
 ---
 
+---
+
+### Decision 13: Dual-Provider STT Architecture
+
+**Author:** Holden (Lead Architect) / Naomi (Backend Dev)  
+**Date:** 2026-04-05  
+**Status:** ✅ APPROVED & IMPLEMENTED  
+**Miller Verdict:** ⚠️ APPROVED WITH NOTES (race condition fixed before commit)
+
+## Summary
+
+Added Deepgram as an alternative Speech-to-Text (STT) provider alongside the existing Azure Speech service. Provider selection is persisted in Azure Table Storage and toggled at runtime via a new `/settings` page. The architecture uses `RoutingTranscriptionService` with keyed dependency injection to delegate to the appropriate provider based on stored settings.
+
+## Rationale
+
+**Why Dual Providers?**
+1. **Vendor Redundancy:** Reduces dependency on single Azure Speech service; Deepgram as backup
+2. **Cost Optimization:** Some workloads may be cheaper on Deepgram (nova-3 model); users can choose
+3. **Feature Differentiation:** Deepgram natively supports speaker diarization (speaker labels); Azure Speech requires additional cognitive services
+4. **Runtime Flexibility:** No redeployment needed to switch providers; settings persisted in cloud storage
+
+**Why Azure Table Storage?**
+- Settings survive application restarts
+- Shared across horizontal scaled instances
+- Minimal latency (co-located in Azure)
+- Existing infrastructure (already used for other domain entities)
+
+**Why Keyed DI?**
+- Clean separation of concerns (each provider is self-contained)
+- `RoutingTranscriptionService` makes routing decision transparent to callers
+- No interface wrapper or reflection; compile-time type safety
+
+## Architecture
+
+### Provider Implementations
+
+**`AzureSpeechTranscriptionService`** (formerly `SpeechTranscriptionService`)
+- Uses Azure Speech SDK with subscription key authentication
+- Returns `Task<TranscriptResult>` with text transcription
+- No speaker diarization (future enhancement via Azure Cognitive Services)
+
+**`DeepgramTranscriptionService`**
+- Uses Deepgram API (nova-3 model)
+- Speaker diarization enabled (returns `SpeakerSegment[]` in `TranscriptResult`)
+- Keyed as "deepgram" in DI container
+
+**`RoutingTranscriptionService`** (Primary Implementation)
+- Injected as `ISpeechTranscriptionService` singleton
+- Reads stored provider preference from `TranscriptionSettingsService`
+- Delegates to keyed provider at call time using `IServiceProvider.GetRequiredService<ISpeechTranscriptionService>("provider-name")`
+- Allows runtime provider switching without recompilation
+
+### Shared Data Types
+
+**`SpeechProvider` Enum**
+```csharp
+public enum SpeechProvider
+{
+    AzureSpeech = 0,
+    Deepgram = 1
+}
+```
+
+**`TranscriptResult` Record**
+```csharp
+public record TranscriptResult(
+    string Text,
+    SpeakerSegment[]? Speakers = null
+);
+```
+
+**`SpeakerSegment` Record**
+```csharp
+public record SpeakerSegment(
+    int Speaker,
+    string Name,
+    TimeSpan Start,
+    TimeSpan End
+);
+```
+
+### Persistence Layer
+
+**`AppSettings` ITableEntity**
+- Stores current `SpeechProvider` and cache timestamp
+- Unique key per application instance
+- Enables provider preference to survive restarts and span instances
+
+**`TranscriptionSettingsService`** (Thread-Safe)
+- Wraps Azure Table Storage access
+- Implements `SemaphoreSlim`-based cache to prevent concurrent reads during update
+- Exposes `GetActiveProviderAsync()` and `SetActiveProviderAsync()`
+- Non-blocking cache invalidation on writes
+
+### Configuration Pattern (IOptions<T>)
+
+**`AzureSpeechOptions`**
+```csharp
+public class AzureSpeechOptions
+{
+    public string Key { get; set; }
+    public string Region { get; set; }
+}
+```
+
+**`DeepgramOptions`**
+```csharp
+public class DeepgramOptions
+{
+    public string ApiKey { get; set; }
+}
+```
+
+Both bound in `Program.cs` via `configuration.GetSection()` and registered as singleton keyed services.
+
+## Implementation Details
+
+### DI Registration (Program.cs)
+
+```csharp
+// Bind options
+services.Configure<AzureSpeechOptions>(configuration.GetSection("AzureSpeech"));
+services.Configure<DeepgramOptions>(configuration.GetSection("Deepgram"));
+
+// Register keyed providers
+services.AddKeyedScoped<ISpeechTranscriptionService, AzureSpeechTranscriptionService>("azurespeech");
+services.AddKeyedScoped<ISpeechTranscriptionService, DeepgramTranscriptionService>("deepgram");
+
+// Register routing service as primary
+services.AddSingleton<ITranscriptionSettingsService, TranscriptionSettingsService>();
+services.AddScoped<ISpeechTranscriptionService, RoutingTranscriptionService>();
+```
+
+### Settings UI (Settings.razor)
+
+New page at `/settings`:
+- Displays current active provider
+- Segmented control (radio-button style) to toggle between "Azure Speech" and "Deepgram"
+- On selection, calls `TranscriptionSettingsService.SetActiveProviderAsync()`
+- Persists immediately to Azure Table Storage
+- No role restrictions (any authenticated user can access)
+
+### JobWorker Integration
+
+`JobWorker.cs` updated to use `TranscriptResult`:
+```csharp
+var transcriptResult = await _transcriptionService.TranscribeAsync(audioStream);
+job.TranscriptText = transcriptResult.Text;
+job.Speakers = transcriptResult.Speakers; // Store speaker segments if provided
+```
+
+## Files Changed
+
+### New Files (13)
+1. `src/MeetingMinutes.Shared/Enums/SpeechProvider.cs`
+2. `src/MeetingMinutes.Shared/Models/TranscriptResult.cs`
+3. `src/MeetingMinutes.Shared/Entities/AppSettings.cs`
+4. `src/MeetingMinutes.Web/Options/AzureSpeechOptions.cs`
+5. `src/MeetingMinutes.Web/Options/DeepgramOptions.cs`
+6. `src/MeetingMinutes.Web/Services/AzureSpeechTranscriptionService.cs`
+7. `src/MeetingMinutes.Web/Services/DeepgramTranscriptionService.cs`
+8. `src/MeetingMinutes.Web/Services/ITranscriptionSettingsService.cs`
+9. `src/MeetingMinutes.Web/Services/TranscriptionSettingsService.cs`
+10. `src/MeetingMinutes.Web/Services/RoutingTranscriptionService.cs`
+11. `src/MeetingMinutes.Web/Pages/Settings.razor`
+12. `tests/MeetingMinutes.Tests/Services/RoutingTranscriptionServiceTests.cs`
+13. `tests/MeetingMinutes.Tests/Services/DeepgramTranscriptionServiceTests.cs`
+
+### Modified Files (7)
+1. `src/MeetingMinutes.Web/Services/ISpeechTranscriptionService.cs` — Return type `Task<string>` → `Task<TranscriptResult>`
+2. `src/MeetingMinutes.Web/Workers/JobWorker.cs` — Use `transcriptResult.Text`
+3. `src/MeetingMinutes.Web/Program.cs` — IOptions binding, keyed DI registration
+4. `src/MeetingMinutes.AppHost/Program.cs` — Add deepgram connection string
+5. `src/MeetingMinutes.Web/appsettings.json` — Fix `AzureSpeech:SubscriptionKey` → `AzureSpeech:Key`; add Deepgram section
+6. `src/MeetingMinutes.Web/Layout/MainLayout.razor` — Restore Settings NavLink
+7. `tests/MeetingMinutes.Tests/Services/SpeechTranscriptionServiceTests.cs` — Rename to `AzureSpeechTranscriptionServiceTests`, update to IOptions pattern
+
+### Deleted Files (1)
+1. `src/MeetingMinutes.Web/Services/SpeechTranscriptionService.cs` (replaced by AzureSpeechTranscriptionService)
+
+## Testing
+
+### Coverage
+
+- **RoutingTranscriptionServiceTests:** Verify routing logic delegates correctly based on active provider
+- **DeepgramTranscriptionServiceTests:** Mock Deepgram API responses, verify speaker segment parsing
+- **AzureSpeechTranscriptionServiceTests:** Migrate existing tests to new class name and IOptions pattern
+- All existing tests pass; no regressions
+
+### Test Status
+
+✅ Build: 0 errors, 0 warnings  
+✅ Tests: All passing (including new routing and Deepgram tests)
+
+## Decisions Made
+
+1. **Provider Switching:** Persisted in Azure Table Storage (not in-memory cache alone) → survives restarts
+2. **Diarization:** Enabled for Deepgram (nova-3 model); not for Azure Speech (requires additional setup)
+3. **Return Type:** `TranscriptResult` record (not just `string`) → supports future speaker attribution and metadata
+4. **Settings UI:** New `/settings` page with segmented control → discoverable, accessible
+5. **Keyed DI:** Both providers registered with keys; `RoutingTranscriptionService` routes transparently
+6. **Thread Safety:** `TranscriptionSettingsService` uses `SemaphoreSlim` cache lock → prevents concurrent table reads
+
+## Non-Blocking Follow-Ups
+
+- **Telemetry:** Add provider health checks and latency metrics to Application Insights
+- **Cost Monitoring:** Track Deepgram API usage and compare costs with Azure Speech
+- **QA:** Test provider switch mid-transcription (graceful fallback behavior)
+- **Future:** Speaker attribution UI (render speaker names and timestamps on transcript)
+
 ## Governance
 
 - All meaningful changes require team consensus

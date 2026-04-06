@@ -14,11 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-using MeetingMinutes.Shared.Models;
+namespace MeetingMinutes.Shared.Models;
 
-namespace MeetingMinutes.Web.Services;
+public sealed record TranscriptResult(
+    string Text,
+    IReadOnlyList<SpeakerSegment>? Segments = null
+);
 
-public interface ISpeechTranscriptionService
-{
-    Task<TranscriptResult> TranscribeAsync(string audioFilePath, CancellationToken ct = default);
-}
+public sealed record SpeakerSegment(
+    int Speaker,
+    string Text,
+    double StartSeconds,
+    double EndSeconds
+);

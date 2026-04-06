@@ -15,25 +15,28 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 using System.Text;
+using MeetingMinutes.Shared.Models;
+using MeetingMinutes.Web.Options;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
+using Microsoft.Extensions.Options;
 
 namespace MeetingMinutes.Web.Services;
 
-public class SpeechTranscriptionService : ISpeechTranscriptionService
+public class AzureSpeechTranscriptionService : ISpeechTranscriptionService
 {
     private readonly string _key;
     private readonly string _region;
-    private readonly ILogger<SpeechTranscriptionService> _logger;
+    private readonly ILogger<AzureSpeechTranscriptionService> _logger;
 
-    public SpeechTranscriptionService(IConfiguration configuration, ILogger<SpeechTranscriptionService> logger)
+    public AzureSpeechTranscriptionService(IOptions<AzureSpeechOptions> options, ILogger<AzureSpeechTranscriptionService> logger)
     {
-        _key = configuration["AzureSpeech:Key"] ?? string.Empty;
-        _region = configuration["AzureSpeech:Region"] ?? string.Empty;
+        _key = options.Value.Key;
+        _region = options.Value.Region;
         _logger = logger;
     }
 
-    public async Task<string> TranscribeAsync(string audioFilePath, CancellationToken ct = default)
+    public async Task<TranscriptResult> TranscribeAsync(string audioFilePath, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(_key) || string.IsNullOrEmpty(_region))
             throw new InvalidOperationException("Azure Speech credentials not configured");
@@ -89,7 +92,7 @@ public class SpeechTranscriptionService : ISpeechTranscriptionService
         {
             var result = await tcs.Task;
             _logger.LogInformation("Transcription completed for {AudioFilePath}, length={Length}", audioFilePath, result.Length);
-            return result;
+            return new TranscriptResult(result);
         }
         finally
         {

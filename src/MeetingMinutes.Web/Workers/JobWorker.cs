@@ -144,10 +144,10 @@ public class JobWorker : BackgroundService
             await jobService.UpdateStatusAsync(jobId, JobStatus.Transcribing, ct: ct);
 
             // 5. Transcribe audio via SpeechTranscriptionService
-            var transcript = await speech.TranscribeAsync(audioTempPath, ct);
+            var transcriptResult = await speech.TranscribeAsync(audioTempPath, ct);
 
             // 6. Store transcript in blob storage
-            var transcriptBlobUri = await blobService.UploadTextAsync(transcript, $"{jobId}.txt", ct);
+            var transcriptBlobUri = await blobService.UploadTextAsync(transcriptResult.Text, $"{jobId}.txt", ct);
 
             job.TranscriptBlobUri = transcriptBlobUri;
             await jobService.UpdateJobAsync(job, ct);
@@ -157,7 +157,7 @@ public class JobWorker : BackgroundService
             await jobService.UpdateStatusAsync(jobId, JobStatus.Summarizing, ct: ct);
 
             // 8. Summarize transcript via SummarizationService
-            var summaryDto = await summarizer.SummarizeAsync(transcript, ct);
+            var summaryDto = await summarizer.SummarizeAsync(transcriptResult.Text, ct);
 
             // 9. Serialize SummaryDto to JSON, store in blob
             var summaryJson = JsonSerializer.Serialize(summaryDto, new JsonSerializerOptions { WriteIndented = true });
