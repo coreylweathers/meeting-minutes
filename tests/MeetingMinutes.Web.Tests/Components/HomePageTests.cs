@@ -32,7 +32,7 @@ public class HomePageTests : TestContext
         // Assert
         var heading = cut.Find("h1");
         heading.Should().NotBeNull();
-        heading.TextContent.Should().Contain("Meeting Minutes");
+        heading.TextContent.Should().Contain("Insights");
     }
     
     [Fact]
@@ -44,7 +44,7 @@ public class HomePageTests : TestContext
         // Assert
         var getStartedLink = cut.Find("a[href='/upload']");
         getStartedLink.Should().NotBeNull();
-        getStartedLink.TextContent.Should().Contain("Get Started");
+        getStartedLink.TextContent.Should().Contain("Upload Recording");
     }
     
     [Fact]
@@ -54,8 +54,8 @@ public class HomePageTests : TestContext
         var cut = RenderComponent<Home>();
         
         // Assert
-        cut.Markup.Should().Contain("Upload your meeting videos");
-        cut.Markup.Should().Contain("AI-generated transcripts");
+        cut.Markup.Should().Contain("Transform chaotic conversation");
+        cut.Markup.Should().Contain("AI");
     }
     
     [Fact(Skip = "PageTitle component renders to document head, not testable in bUnit")]

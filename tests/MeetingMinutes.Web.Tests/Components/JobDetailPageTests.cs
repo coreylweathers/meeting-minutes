@@ -16,299 +16,156 @@
 
 using Bunit;
 using FluentAssertions;
+using MeetingMinutes.Shared.DTOs;
+using MeetingMinutes.Shared.Entities;
+using MeetingMinutes.Shared.Enums;
 using MeetingMinutes.Web.Pages;
 using MeetingMinutes.Web.Services;
-using MeetingMinutes.Shared.DTOs;
-using MeetingMinutes.Shared.Enums;
-using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using System.Net;
-using System.Net.Http;
-using System.Text.Json;
 using Xunit;
 
 namespace MeetingMinutes.Web.Tests.Components;
 
 public class JobDetailPageTests : TestContext
 {
+    private void RegisterServices(Mock<IJobMetadataService> mockJobMetadata, Mock<IBlobStorageService>? mockBlob = null)
+    {
+        Services.AddLogging();
+        Services.AddSingleton(mockJobMetadata.Object);
+        Services.AddSingleton((mockBlob ?? new Mock<IBlobStorageService>()).Object);
+        Services.AddSingleton(new Mock<ISummarizationService>().Object);
+        JSInterop.Mode = JSRuntimeMode.Loose;
+    }
+
+    private static ProcessingJob MakeJob(string jobId, string fileName, JobStatus status, string? errorMessage = null) => new()
+    {
+        JobId = jobId,
+        FileName = fileName,
+        Status = status.ToString(),
+        ErrorMessage = errorMessage,
+        PartitionKey = "jobs",
+        RowKey = jobId,
+        CreatedAt = DateTimeOffset.UtcNow,
+        UpdatedAt = DateTimeOffset.UtcNow,
+    };
+
     [Fact]
     public void JobDetailPage_DoesNotRequire_Authorization()
     {
-        // Arrange - auth removed from project
         var authorizeAttribute = typeof(JobDetail)
             .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), false)
             .FirstOrDefault();
-        
-        // Assert
         authorizeAttribute.Should().BeNull("JobDetail page should NOT have [Authorize] attribute after auth removal");
     }
-    
+
     [Fact]
-    public async Task JobDetailPage_Shows_LoadingSpinner_Initially()
+    public void JobDetailPage_Shows_LoadingSpinner_Initially()
     {
-        // Arrange
-        var mockBlobService = new Mock<IBlobStorageService>();
-        var mockJobMetadataService = new Mock<IJobMetadataService>();
-        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
-        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
-        var mockHandler = new DelayedJobDetailMockHandler();
-        var mockHttpClient = new HttpClient(mockHandler) { BaseAddress = new Uri("http://localhost") };
-        Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
-        JSInterop.Mode = JSRuntimeMode.Loose;
-        
-        // Act
-        var cut = RenderComponent<JobDetail>(parameters => parameters
-            .Add(p => p.Id, "job1"));
-        
-        // Assert - before initialization completes
+        var tcs = new TaskCompletionSource<ProcessingJob?>();
+        var mockJobMetadata = new Mock<IJobMetadataService>();
+        mockJobMetadata.Setup(s => s.GetJobAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(tcs.Task);
+        RegisterServices(mockJobMetadata);
+
+        var cut = RenderComponent<JobDetail>(p => p.Add(x => x.Id, "job1"));
+
         cut.Markup.Should().Contain("Loading");
     }
-    
+
     [Fact]
     public async Task JobDetailPage_Shows_JobNotFound_WhenJobDoesNotExist()
     {
-        // Arrange
-        var mockBlobService = new Mock<IBlobStorageService>();
-        var mockJobMetadataService = new Mock<IJobMetadataService>();
-        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
-        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
-        var mockHandler = new JobDetailNotFoundMockHandler();
-        var mockHttpClient = new HttpClient(mockHandler) { BaseAddress = new Uri("http://localhost") };
-        Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
-        JSInterop.Mode = JSRuntimeMode.Loose;
-        
-        // Act
-        var cut = RenderComponent<JobDetail>(parameters => parameters
-            .Add(p => p.Id, "nonexistent"));
+        var mockJobMetadata = new Mock<IJobMetadataService>();
+        mockJobMetadata.Setup(s => s.GetJobAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProcessingJob?)null);
+        RegisterServices(mockJobMetadata);
+
+        var cut = RenderComponent<JobDetail>(p => p.Add(x => x.Id, "nonexistent"));
         await Task.Delay(100);
         cut.Render();
-        
-        // Assert
-        cut.Markup.Should().Contain("Job not found");
+
+        cut.Markup.Should().Contain("Job Not Found");
     }
-    
+
     [Fact]
     public async Task JobDetailPage_Displays_JobFileName()
     {
-        // Arrange
-        var mockBlobService = new Mock<IBlobStorageService>();
-        var mockJobMetadataService = new Mock<IJobMetadataService>();
-        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
-        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
-        var job = new JobDto(
-            JobId: "job1",
-            FileName: "test-meeting.mp4",
-            Status: JobStatus.Completed,
-            BlobUri: null,
-            TranscriptBlobUri: null,
-            SummaryBlobUri: null,
-            ErrorMessage: null,
-            CreatedAt: DateTimeOffset.UtcNow,
-            UpdatedAt: DateTimeOffset.UtcNow
-        );
-        var mockHandler = new JobDetailMockHandler(job, null, null);
-        var mockHttpClient = new HttpClient(mockHandler) { BaseAddress = new Uri("http://localhost") };
-        Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
-        JSInterop.Mode = JSRuntimeMode.Loose;
-        
-        // Act
-        var cut = RenderComponent<JobDetail>(parameters => parameters
-            .Add(p => p.Id, "job1"));
+        var entity = MakeJob("job1", "test-meeting.mp4", JobStatus.Completed);
+        var mockJobMetadata = new Mock<IJobMetadataService>();
+        mockJobMetadata.Setup(s => s.GetJobAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+        RegisterServices(mockJobMetadata);
+
+        var cut = RenderComponent<JobDetail>(p => p.Add(x => x.Id, "job1"));
         await Task.Delay(100);
         cut.Render();
-        
-        // Assert
+
         cut.Markup.Should().Contain("test-meeting.mp4");
     }
-    
+
     [Fact]
     public async Task JobDetailPage_Shows_ProcessingSpinner_ForPendingJob()
     {
-        // Arrange
-        var mockBlobService = new Mock<IBlobStorageService>();
-        var mockJobMetadataService = new Mock<IJobMetadataService>();
-        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
-        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
-        var job = new JobDto(
-            JobId: "job1",
-            FileName: "processing.mp4",
-            Status: JobStatus.Transcribing,
-            BlobUri: null,
-            TranscriptBlobUri: null,
-            SummaryBlobUri: null,
-            ErrorMessage: null,
-            CreatedAt: DateTimeOffset.UtcNow,
-            UpdatedAt: DateTimeOffset.UtcNow
-        );
-        var mockHandler = new JobDetailMockHandler(job, null, null);
-        var mockHttpClient = new HttpClient(mockHandler) { BaseAddress = new Uri("http://localhost") };
-        Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
-        JSInterop.Mode = JSRuntimeMode.Loose;
-        
-        // Act
-        var cut = RenderComponent<JobDetail>(parameters => parameters
-            .Add(p => p.Id, "job1"));
+        var entity = MakeJob("job1", "processing.mp4", JobStatus.Transcribing);
+        var mockJobMetadata = new Mock<IJobMetadataService>();
+        mockJobMetadata.Setup(s => s.GetJobAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+        RegisterServices(mockJobMetadata);
+
+        var cut = RenderComponent<JobDetail>(p => p.Add(x => x.Id, "job1"));
         await Task.Delay(100);
         cut.Render();
-        
-        // Assert
+
         cut.Markup.Should().Contain("Processing");
     }
-    
+
     [Fact]
     public async Task JobDetailPage_Shows_ErrorMessage_ForFailedJob()
     {
-        // Arrange
-        var mockBlobService = new Mock<IBlobStorageService>();
-        var mockJobMetadataService = new Mock<IJobMetadataService>();
-        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
-        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
-        var job = new JobDto(
-            JobId: "job1",
-            FileName: "failed.mp4",
-            Status: JobStatus.Failed,
-            BlobUri: null,
-            TranscriptBlobUri: null,
-            SummaryBlobUri: null,
-            ErrorMessage: "Transcription failed",
-            CreatedAt: DateTimeOffset.UtcNow,
-            UpdatedAt: DateTimeOffset.UtcNow
-        );
-        var mockHandler = new JobDetailMockHandler(job, null, null);
-        var mockHttpClient = new HttpClient(mockHandler) { BaseAddress = new Uri("http://localhost") };
-        Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
-        JSInterop.Mode = JSRuntimeMode.Loose;
-        
-        // Act
-        var cut = RenderComponent<JobDetail>(parameters => parameters
-            .Add(p => p.Id, "job1"));
+        var entity = MakeJob("job1", "failed.mp4", JobStatus.Failed, "Transcription failed");
+        var mockJobMetadata = new Mock<IJobMetadataService>();
+        mockJobMetadata.Setup(s => s.GetJobAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+        RegisterServices(mockJobMetadata);
+
+        var cut = RenderComponent<JobDetail>(p => p.Add(x => x.Id, "job1"));
         await Task.Delay(100);
         cut.Render();
-        
-        // Assert
-        cut.Markup.Should().Contain("Error:");
+
+        cut.Markup.Should().Contain("Error");
         cut.Markup.Should().Contain("Transcription failed");
     }
-    
+
     [Fact]
     public async Task JobDetailPage_Shows_TranscriptAndSummary_ForCompletedJob()
     {
-        // Arrange
-        var mockBlobService = new Mock<IBlobStorageService>();
-        var mockJobMetadataService = new Mock<IJobMetadataService>();
-        Services.Add(ServiceDescriptor.Singleton(mockBlobService.Object));
-        Services.Add(ServiceDescriptor.Singleton(mockJobMetadataService.Object));
-        var job = new JobDto(
-            JobId: "job1",
-            FileName: "completed.mp4",
-            Status: JobStatus.Completed,
-            BlobUri: null,
-            TranscriptBlobUri: null,
-            SummaryBlobUri: null,
-            ErrorMessage: null,
-            CreatedAt: DateTimeOffset.UtcNow,
-            UpdatedAt: DateTimeOffset.UtcNow
-        );
-        var transcript = "This is the meeting transcript.";
-        var summary = new SummaryDto(
-            Title: "Test Meeting",
-            Attendees: new[] { "Alice", "Bob" },
-            KeyPoints: new[] { "Point 1", "Point 2" },
-            ActionItems: new[] { "Action 1" },
-            Decisions: new[] { "Decision 1" },
-            DurationMinutes: 30
-        );
-        var mockHandler = new JobDetailMockHandler(job, transcript, summary);
-        var mockHttpClient = new HttpClient(mockHandler) { BaseAddress = new Uri("http://localhost") };
-        Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
-        JSInterop.Mode = JSRuntimeMode.Loose;
-        
-        // Act
-        var cut = RenderComponent<JobDetail>(parameters => parameters
-            .Add(p => p.Id, "job1"));
+        var transcriptUri = "http://fake/transcripts/job1.txt";
+        var summaryUri = "http://fake/summaries/job1.json";
+        var entity = MakeJob("job1", "completed.mp4", JobStatus.Completed);
+        entity.TranscriptBlobUri = transcriptUri;
+        entity.SummaryBlobUri = summaryUri;
+
+        var mockJobMetadata = new Mock<IJobMetadataService>();
+        mockJobMetadata.Setup(s => s.GetJobAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+
+        var mockBlob = new Mock<IBlobStorageService>();
+        mockBlob.Setup(b => b.DownloadTextAsync(transcriptUri, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("This is the meeting transcript.");
+        var summary = new SummaryDto("Test Meeting", new[] { "Alice", "Bob" },
+            new[] { "Point 1" }, new[] { "Action 1" }, new[] { "Decision 1" }, 30);
+        mockBlob.Setup(b => b.DownloadTextAsync(summaryUri, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(System.Text.Json.JsonSerializer.Serialize(summary));
+
+        RegisterServices(mockJobMetadata, mockBlob);
+
+        var cut = RenderComponent<JobDetail>(p => p.Add(x => x.Id, "job1"));
         await Task.Delay(200);
         cut.Render();
-        
-        // Assert
-        cut.Markup.Should().Contain("Transcript");
-        cut.Markup.Should().Contain("Summary");
+
+        cut.Markup.Should().Contain("Full Transcript");
+        cut.Markup.Should().Contain("Executive Intelligence");
         cut.Markup.Should().Contain("Test Meeting");
-    }
-}
-
-internal class JobDetailMockHandler : HttpMessageHandler
-{
-    private readonly JobDto? _job;
-    private readonly string? _transcript;
-    private readonly SummaryDto? _summary;
-
-    public JobDetailMockHandler(JobDto? job, string? transcript, SummaryDto? summary)
-    {
-        _job = job;
-        _transcript = transcript;
-        _summary = summary;
-    }
-
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        var path = request.RequestUri?.AbsolutePath ?? "";
-        
-        if (path.StartsWith("/api/jobs/") && path.EndsWith("/transcript"))
-        {
-            if (_transcript != null)
-            {
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(_transcript, System.Text.Encoding.UTF8, "text/plain")
-                });
-            }
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
-        }
-        
-        if (path.StartsWith("/api/jobs/") && path.EndsWith("/summary"))
-        {
-            if (_summary != null)
-            {
-                var json = JsonSerializer.Serialize(_summary);
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
-                });
-            }
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
-        }
-        
-        if (path.StartsWith("/api/jobs/"))
-        {
-            if (_job != null)
-            {
-                var json = JsonSerializer.Serialize(_job);
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
-                });
-            }
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
-        }
-        
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
-    }
-}
-
-internal class DelayedJobDetailMockHandler : HttpMessageHandler
-{
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        await Task.Delay(10000, cancellationToken);
-        return new HttpResponseMessage(HttpStatusCode.OK);
-    }
-}
-
-internal class JobDetailNotFoundMockHandler : HttpMessageHandler
-{
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
     }
 }

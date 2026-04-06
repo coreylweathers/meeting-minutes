@@ -17,7 +17,9 @@
 using Bunit;
 using FluentAssertions;
 using MeetingMinutes.Web.Pages;
+using MeetingMinutes.Web.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Net;
 using System.Net.Http;
 using Xunit;
@@ -42,6 +44,8 @@ public class UploadPageTests : TestContext
     public void UploadPage_Renders_TitleInput()
     {
         // Arrange
+        Services.AddSingleton(new Mock<IBlobStorageService>().Object);
+        Services.AddSingleton(new Mock<IJobMetadataService>().Object);
         var mockHttpClient = new HttpClient(new MockHttpMessageHandler()) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
         
@@ -58,6 +62,8 @@ public class UploadPageTests : TestContext
     public void UploadPage_Renders_FileInput()
     {
         // Arrange
+        Services.AddSingleton(new Mock<IBlobStorageService>().Object);
+        Services.AddSingleton(new Mock<IJobMetadataService>().Object);
         var mockHttpClient = new HttpClient(new MockHttpMessageHandler()) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
         
@@ -75,6 +81,8 @@ public class UploadPageTests : TestContext
     public void UploadPage_Renders_SubmitButton()
     {
         // Arrange
+        Services.AddSingleton(new Mock<IBlobStorageService>().Object);
+        Services.AddSingleton(new Mock<IJobMetadataService>().Object);
         var mockHttpClient = new HttpClient(new MockHttpMessageHandler()) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
         
@@ -84,13 +92,15 @@ public class UploadPageTests : TestContext
         // Assert
         var submitButton = cut.Find("button[type='submit']");
         submitButton.Should().NotBeNull();
-        submitButton.TextContent.Should().Contain("Upload Video");
+        submitButton.TextContent.Should().Contain("Initialize Transcription");
     }
     
     [Fact]
     public void UploadPage_SubmitButton_IsDisabled_WhenNoFileSelected()
     {
         // Arrange
+        Services.AddSingleton(new Mock<IBlobStorageService>().Object);
+        Services.AddSingleton(new Mock<IJobMetadataService>().Object);
         var mockHttpClient = new HttpClient(new MockHttpMessageHandler()) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
         
@@ -107,6 +117,8 @@ public class UploadPageTests : TestContext
     {
         // bUnit doesn't render <PageTitle> to DOM. PageTitle affects document head at runtime.
         // Arrange
+        Services.AddSingleton(new Mock<IBlobStorageService>().Object);
+        Services.AddSingleton(new Mock<IJobMetadataService>().Object);
         var mockHttpClient = new HttpClient(new MockHttpMessageHandler()) { BaseAddress = new Uri("http://localhost") };
         Services.Add(ServiceDescriptor.Singleton(mockHttpClient));
         
