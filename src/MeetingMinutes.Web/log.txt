@@ -1,15 +1,15 @@
-2026-04-05 21:39:09.906 [Information] DeepgramHttpClientOptions: OnPrem: False
-2026-04-05 21:39:09.918 [Information] DeepgramHttpClientOptions: APIVersion: v1
-2026-04-05 21:39:09.919 [Information] DeepgramHttpClientOptions: API KEY set from parameter
-2026-04-05 21:39:09.922 [Information] DeepgramHttpClientOptions: REST BaseAddress does not contain API version: api.deepgram.com
-2026-04-05 21:39:09.922 [Information] DeepgramHttpClientOptions: BaseAddress contains no protocol: api.deepgram.com/v1
-2026-04-05 21:39:09.922 [Information] DeepgramHttpClientOptions: BaseAddress: https://api.deepgram.com/v1
-2026-04-05 21:39:09.928 [Information] HttpClientFactory.Create: HttpClient ID: DEEPGRAM_HTTP_CLIENT
-2026-04-05 21:39:09.953 [Information] TranscribeFile: source: System.IO.MemoryStream
-2026-04-05 21:39:09.974 [Information] TranscribeFile: prerecordedSchema:
+2026-04-05 22:05:30.152 [Information] DeepgramHttpClientOptions: OnPrem: False
+2026-04-05 22:05:30.234 [Information] DeepgramHttpClientOptions: APIVersion: v1
+2026-04-05 22:05:30.240 [Information] DeepgramHttpClientOptions: API KEY set from parameter
+2026-04-05 22:05:30.254 [Information] DeepgramHttpClientOptions: REST BaseAddress does not contain API version: api.deepgram.com
+2026-04-05 22:05:30.255 [Information] DeepgramHttpClientOptions: BaseAddress contains no protocol: api.deepgram.com/v1
+2026-04-05 22:05:30.256 [Information] DeepgramHttpClientOptions: BaseAddress: https://api.deepgram.com/v1
+2026-04-05 22:05:30.268 [Information] HttpClientFactory.Create: HttpClient ID: DEEPGRAM_HTTP_CLIENT
+2026-04-05 22:05:30.352 [Information] TranscribeFile: source: System.IO.MemoryStream
+2026-04-05 22:05:30.424 [Information] TranscribeFile: prerecordedSchema:
 {
   "diarize": true,
   "model": "nova-3",
   "punctuate": true
 }
-2026-04-05 21:39:17.584 [Information] TranscribeFile: https://api.deepgram.com/v1/listen Succeeded
+2026-04-05 22:05:50.843 [Information] TranscribeFile: https://api.deepgram.com/v1/listen Succeeded
