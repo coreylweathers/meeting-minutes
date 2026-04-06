@@ -11,6 +11,10 @@ AI-powered meeting transcription and summarization.
 ## Prerequisites
 - .NET 10 SDK
 - Docker Desktop (for Aspire Azurite emulation)
+- [ffmpeg](https://ffmpeg.org/) — required for audio extraction
+  - Windows: `winget install --id Gyan.FFmpeg`
+  - macOS: `brew install ffmpeg`
+  - Linux: `apt-get install ffmpeg` / `dnf install ffmpeg`
 - Azure subscription
 
 ## Local Development

@@ -849,3 +849,19 @@ job.Speakers = transcriptResult.Speakers; // Store speaker segments if provided
 - Document architectural decisions here
 - Keep history focused on work, decisions focused on direction
 
+---
+
+## Decision 14: FFmpeg installed via Dockerfile apt-get + .dockerignore added
+
+**Date:** 2026-04-07
+**Decision makers:** Amos (implementation), Miller (review)
+
+`FFMpegCore` requires the native `ffmpeg` binary. Rather than bundling the binary in source control, we install it at container build time via `apt-get install -y --no-install-recommends ffmpeg` in the runtime stage of a multi-stage Dockerfile. A `.dockerignore` was added to keep build context lean.
+
+**Rationale:**
+- Standard Linux package manager install is the idiomatic container approach
+- `--no-install-recommends` + apt cache cleanup keeps image size minimal
+- `.dockerignore` prevents node_modules/, .squad/, .git/ etc. from being sent to the Docker daemon
+
+**Local dev:** `winget install --id Gyan.FFmpeg` (Windows) or `brew install ffmpeg` (macOS)
+

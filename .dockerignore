@@ -1,0 +1,9 @@
+.git/
+.squad/
+node_modules/
+**/bin/
+**/obj/
+build-output.txt
+*.md
+infra/
+designs/
