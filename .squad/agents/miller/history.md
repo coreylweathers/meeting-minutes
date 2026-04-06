@@ -667,3 +667,23 @@ Reviewed navigation consistency improvements by Alex across LandingLayout, MainL
 - Decision 12: Miller's review with approval + nav review notes (approved with notes)
 
 **Status:** ✅ Navigation consistency work APPROVED and ready for commit
+
+### 2026-04-07: FFmpeg Path Resolver Review Approval
+
+Session log: `.squad/log/2026-04-07T01-00-00Z-ffmpeg-path-resolver.md`  
+Orchestration log: `.squad/orchestration-log/2026-04-07T01-00-00Z-miller.md`
+
+**Files Reviewed:**
+| File | Status |
+|------|--------|
+| `src/MeetingMinutes.Web/Services/FFmpegPathResolver.cs` | ✅ APPROVED |
+| `src/MeetingMinutes.Web/Program.cs` | ✅ APPROVED |
+
+**Review Summary:**
+- Path resolution logic: 3-tier (FFMPEG_BINARY_PATH env var → winget glob → PATH fallback) all criteria passed
+- GlobalFFOptions placement: correct timing before AddServiceDefaults()
+- BlobUriBuilder fix: consistent with prior usage pattern, correctly handles Azurite + production URIs
+- Build: 0 errors, 2 pre-existing bunit warnings
+- Tests: 27 passing, 10 skipped (unchanged baseline)
+
+**Verdict:** ✅ APPROVED — "LGTM. Ship it."

@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+using FFMpegCore;
 using MeetingMinutes.Web;
 using MeetingMinutes.Web.Components;
 using MeetingMinutes.Web.Options;
@@ -27,6 +28,11 @@ using MeetingMinutes.Shared.Enums;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure FFMpegCore binary path — handles winget installs that don't add to PATH
+var ffmpegBinDir = FFmpegPathResolver.Resolve();
+if (!string.IsNullOrEmpty(ffmpegBinDir))
+    GlobalFFOptions.Configure(opts => opts.BinaryFolder = ffmpegBinDir);
 
 builder.AddServiceDefaults();
 
@@ -178,12 +184,10 @@ jobs.MapPut("/{id}/summary", async (
     var summary = new SummaryDto(request.Title, request.Attendees, request.KeyPoints, request.ActionItems, request.Decisions, request.DurationMinutes);
     var json = JsonSerializer.Serialize(summary);
 
-    var uri = new Uri(job.SummaryBlobUri);
-    var segments = uri.AbsolutePath.TrimStart('/').Split('/', 2);
-    if (segments.Length < 2) return Results.Problem("Invalid summary blob URI");
-
-    var container = blobServiceClient.GetBlobContainerClient(segments[0]);
-    var blob = container.GetBlobClient(segments[1]);
+    // GOOD — handles both Azurite and production Azure URIs
+    var blobUri = new Azure.Storage.Blobs.BlobUriBuilder(new Uri(job.SummaryBlobUri));
+    var container = blobServiceClient.GetBlobContainerClient(blobUri.BlobContainerName);
+    var blob = container.GetBlobClient(blobUri.BlobName);
     using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
     await blob.UploadAsync(stream, overwrite: true, cancellationToken: ct);
     return Results.NoContent();

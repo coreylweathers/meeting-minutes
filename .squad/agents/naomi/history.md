@@ -145,3 +145,21 @@ Bobbie established baseline test suite covering core services. Baseline tests no
   - Added `app.UseAntiforgery();` in middleware pipeline (after UseStaticFiles, before endpoint mappings)
 - **Key learning:** Blazor Server requires antiforgery middleware independent of authentication. Must keep even in apps with no auth.
 - Exception fixed: `InvalidOperationException: Endpoint / (/) contains anti-forgery metadata, but a middleware was not found that supports anti-forgery.`
+
+### 2026-04-02 — FFmpegPathResolver + BlobUriBuilder fix (Task: naomi-ffmpeg-path-resolver)
+- Created `Services/FFmpegPathResolver.cs` in `MeetingMinutes.Web` — internal static class, no DI registration needed.
+- Resolution priority: `FFMPEG_BINARY_PATH` env var → Windows winget Gyan.FFmpeg glob → empty string (PATH fallback for Linux/macOS containers).
+- `GlobalFFOptions.Configure(opts => opts.BinaryFolder = ...)` called at startup in `Program.cs` before `builder.AddServiceDefaults()`, only when resolved path is non-empty.
+- `BlobUriBuilder` lives in `Azure.Storage.Blobs` namespace (not `.Models`); used fully-qualified `Azure.Storage.Blobs.BlobUriBuilder` in Program.cs to fix Azurite URI parsing in PUT `/api/jobs/{id}/summary`.
+- Build: **0 errors, 2 pre-existing bunit warnings**. Unit tests: **27 passing, 10 skipped** (unchanged).
+
+### 2026-04-07 — FFmpeg Path Resolver Completed ✅
+
+Session log: `.squad/log/2026-04-07T01-00-00Z-ffmpeg-path-resolver.md`  
+Orchestration log: `.squad/orchestration-log/2026-04-07T01-00-00Z-naomi.md`
+
+- Created `FFmpegPathResolver.cs` with 3-tier resolution for winget/apt/brew ffmpeg discovery
+- Verified build clean (0 errors, 2 pre-existing warnings)
+- Tests: 27 passing, 10 skipped (unchanged baseline)
+- Miller approved both files (FFmpegPathResolver.cs + Program.cs modifications)
+- Ready for merge
