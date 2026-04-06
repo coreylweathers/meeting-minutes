@@ -200,15 +200,10 @@ public class JobWorker : BackgroundService
 
     private async Task DownloadBlobToFileAsync(string blobUri, string destinationPath, CancellationToken ct)
     {
-        var uri = new Uri(blobUri);
-        var segments = uri.AbsolutePath.TrimStart('/').Split('/', 2);
-        if (segments.Length < 2)
-            throw new InvalidOperationException($"Invalid blob URI: {blobUri}");
-
-        var containerName = segments[0];
-        var blobName = segments[1];
-
-        var blob = _blobServiceClient.GetBlobContainerClient(containerName).GetBlobClient(blobName);
+        var uriBuilder = new Azure.Storage.Blobs.BlobUriBuilder(new Uri(blobUri));
+        var blob = _blobServiceClient
+            .GetBlobContainerClient(uriBuilder.BlobContainerName)
+            .GetBlobClient(uriBuilder.BlobName);
         await blob.DownloadToAsync(destinationPath, ct);
     }
 

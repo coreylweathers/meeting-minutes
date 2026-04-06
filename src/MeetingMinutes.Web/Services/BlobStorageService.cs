@@ -54,15 +54,13 @@ public sealed class BlobStorageService(BlobServiceClient blobServiceClient, ILog
     public async Task<string?> DownloadTextAsync(string blobUri, CancellationToken ct = default)
     {
         logger.LogInformation("Downloading text blob from {BlobUri}", blobUri);
-        var uri = new Uri(blobUri);
-        var segments = uri.AbsolutePath.TrimStart('/').Split('/', 2);
-        if (segments.Length < 2)
+        var uriBuilder = new BlobUriBuilder(new Uri(blobUri));
+        if (string.IsNullOrEmpty(uriBuilder.BlobContainerName) || string.IsNullOrEmpty(uriBuilder.BlobName))
             return null;
 
-        var containerName = segments[0];
-        var blobName = segments[1];
-
-        var blob = blobServiceClient.GetBlobContainerClient(containerName).GetBlobClient(blobName);
+        var blob = blobServiceClient
+            .GetBlobContainerClient(uriBuilder.BlobContainerName)
+            .GetBlobClient(uriBuilder.BlobName);
 
         try
         {
@@ -78,18 +76,15 @@ public sealed class BlobStorageService(BlobServiceClient blobServiceClient, ILog
 
     public Task<string> GetSasUrlAsync(string blobUri, TimeSpan expiry, CancellationToken ct = default)
     {
-        var uri = new Uri(blobUri);
-        var segments = uri.AbsolutePath.TrimStart('/').Split('/', 2);
-
-        var containerName = segments[0];
-        var blobName = segments.Length > 1 ? segments[1] : string.Empty;
-
-        var blob = blobServiceClient.GetBlobContainerClient(containerName).GetBlobClient(blobName);
+        var uriBuilder = new BlobUriBuilder(new Uri(blobUri));
+        var blob = blobServiceClient
+            .GetBlobContainerClient(uriBuilder.BlobContainerName)
+            .GetBlobClient(uriBuilder.BlobName);
 
         var sasBuilder = new BlobSasBuilder
         {
-            BlobContainerName = containerName,
-            BlobName = blobName,
+            BlobContainerName = uriBuilder.BlobContainerName,
+            BlobName = uriBuilder.BlobName,
             Resource = "b",
             ExpiresOn = DateTimeOffset.UtcNow.Add(expiry)
         };
